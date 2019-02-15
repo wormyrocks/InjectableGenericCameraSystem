@@ -414,7 +414,6 @@ namespace IGCS
 
 	void System::takeLightfieldPhoto()
 	{
-		OverlayConsole::instance().logLinev("Begin lightfield capture with view distance... %.3f", Globals::instance().settings().fovChangeSpeed);
-
+		OverlayConsole::instance().logLine("Begin lightfield capture");
 	}
 }
