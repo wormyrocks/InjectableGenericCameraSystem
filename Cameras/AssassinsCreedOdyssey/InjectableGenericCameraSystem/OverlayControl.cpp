@@ -33,7 +33,6 @@ namespace IGCS::OverlayControl
 	static atomic<float> _timeSplashFirstShown = -1;
 	static ImVec2 _splashWindowSize;
 	static atomic_int _menuItemSelected = 0;
-	static atomic_short _actionKeyBindingEditing = -1;
 	static bool _showMainWindow = false;
 	
 	//-----------------------------------------------
@@ -43,12 +42,9 @@ namespace IGCS::OverlayControl
 	void renderHelp();
 	void renderSettings();
 	void renderMainWindow();
-	void renderKeyBindings();
 	void renderSplash();
 	void updateNotificationStore();
-	void showHelpMarker(const char* desc);
-	void startKeyBindingCapturing(short actionType);
-	void endKeyBindingCapturing(bool acceptCollectedBinding);
+	void ShowHelpMarker(const char* desc);
 
 	//-----------------------------------------------
 	// code
@@ -101,8 +97,8 @@ namespace IGCS::OverlayControl
 		{
 			auto itemSpacing = ImVec2(ImGui::GetStyle().ItemSpacing.x*2.0f, ImGui::GetStyle().ItemSpacing.y);
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, itemSpacing);
-			const char *const menu_items[] = { "Settings", "Key-bindings", "Console", "Help", "About" };
-			for (int i = 0; i < 5; i++)
+			const char *const menu_items[] = { "Settings", "Console", "Help", "About" };
+			for (int i = 0; i < 4; i++)
 			{
 				if (ImGui::Selectable(menu_items[i], _menuItemSelected == i, 0, ImVec2(ImGui::CalcTextSize(menu_items[i]).x, 0)))
 				{
@@ -121,16 +117,13 @@ namespace IGCS::OverlayControl
 		case 0: // settings
 			renderSettings();
 			break;
-		case 1: // key bindings
-			renderKeyBindings();
-			break;
-		case 2: // console
+		case 1:	// console
 			IGCS::OverlayConsole::instance().draw();
 			break;
-		case 3:	// help
+		case 2:	// help
 			renderHelp();
 			break;
-		case 4:	// about
+		case 3:	// about
 			renderAbout();
 			break;
 		}
@@ -145,7 +138,7 @@ namespace IGCS::OverlayControl
 		ImGui::Text("Camera credits: %s", CAMERA_CREDITS);
 		ImGui::Spacing();
 		ImGui::Text(R"(Powered by Injectable Generic Camera System (IGCS). 
-Copyright (c) 2019 Otis_Inf (Frans Bouma). All rights reserved.
+Copyright (c) 2017 Otis_Inf (Frans Bouma). All rights reserved.
 https://github.com/FransBouma/InjectableGenericCameraSystem
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -182,7 +175,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 Special thanks to: 
 * Crosire, for creating and opening the Reshade sourcecode. It was a great help with ImGui.
-* HattiWatti, for tips and small utility code.
 * The users of my camera's, you all are a great inspiration to make the best camera tools possible!)");
 		}
 		ImGui::PopTextWrapPos();
@@ -205,32 +197,25 @@ Special thanks to:
 
 		if (ImGui::CollapsingHeader("Camera tools controls"))
 		{
-			ImGui::Text("Show / Hide Camera tools main window : %s", Globals::instance().getActionData(ActionType::ToggleOverlay)->toString().c_str());
-			ImGui::Text("Resize font                          : Ctrl + Mouse wheel");
-			ImGui::Text("Enable/Disable camera                : %s", Globals::instance().getActionData(ActionType::CameraEnable)->toString().c_str());
-			ImGui::Text("Lock / unlock camera movement        : %s", Globals::instance().getActionData(ActionType::CameraLock)->toString().c_str());
-			ImGui::Text("Toggle HUD                           : %s", Globals::instance().getActionData(ActionType::HudToggle)->toString().c_str());
-			ImGui::Text("Faster rotate / move                 : Alt + rotate / move");
-			ImGui::Text("Slower rotate / move                 : Ctrl + rotate / move");
-			ImGui::Text("Faster rotate / move                 : Controller Y-button + l/r-stick");
-			ImGui::Text("Slower rotate / move                 : Controller X-button + l/r-stick");
-			ImGui::Text("Rotate camera up/down                : %s/%s or mouse or r-stick", Globals::instance().getActionData(ActionType::RotateUp)->toString().c_str(), 
-																							Globals::instance().getActionData(ActionType::RotateDown)->toString().c_str());
-			ImGui::Text("Rotate camera left/right             : %s/%s or mouse or r-stick", Globals::instance().getActionData(ActionType::RotateLeft)->toString().c_str(), 
-																							Globals::instance().getActionData(ActionType::RotateRight)->toString().c_str());
-			ImGui::Text("Move camera forward/backward         : %s/%s or l-stick", Globals::instance().getActionData(ActionType::MoveForward)->toString().c_str(), 
-																				   Globals::instance().getActionData(ActionType::MoveBackward)->toString().c_str());
-			ImGui::Text("Move camera left / right             : %s/%s or l-stick", Globals::instance().getActionData(ActionType::MoveLeft)->toString().c_str(),
-																				   Globals::instance().getActionData(ActionType::MoveRight)->toString().c_str());
-			ImGui::Text("Move camera up / down                : %s/%s or l/r-trigger", Globals::instance().getActionData(ActionType::MoveUp)->toString().c_str(),
-																					   Globals::instance().getActionData(ActionType::MoveDown)->toString().c_str());
-			ImGui::Text("Tilt camera left / right             : %s/%s or d-pad left/right", Globals::instance().getActionData(ActionType::TiltLeft)->toString().c_str(),
-																							Globals::instance().getActionData(ActionType::TiltRight)->toString().c_str());
-			ImGui::Text("Increase / decrease FoV              : %s/%s or d-pad up/down", Globals::instance().getActionData(ActionType::FovIncrease)->toString().c_str(),
-																						 Globals::instance().getActionData(ActionType::FovDecrease)->toString().c_str());
-			ImGui::Text("Reset FoV                            : %s or controller B-button", Globals::instance().getActionData(ActionType::FovReset)->toString().c_str());
-			ImGui::Text("Block input to game                  : %s", Globals::instance().getActionData(ActionType::BlockInput)->toString().c_str());
-			ImGui::Text("Toggle game pause                    : %s", Globals::instance().getActionData(ActionType::Timestop)->toString().c_str());
+			ImGui::TextUnformatted("Ctrl-Ins                              : Show / Hide Camera tools main window");
+			ImGui::TextUnformatted("Ctrl + Mouse wheel                    : Resize font");
+			ImGui::TextUnformatted("Ins                                   : Enable/Disable camera");
+			ImGui::TextUnformatted("Home                                  : Lock/unlock camera movement");
+			ImGui::TextUnformatted("Del                                   : Toggle HUD");
+			ImGui::TextUnformatted("ALT + rotate/move                     : Faster rotate / move");
+			ImGui::TextUnformatted("Right-CTRL + rotate/move              : Slower rotate / move");
+			ImGui::TextUnformatted("Controller Y-button + l/r-stick       : Faster rotate / move");
+			ImGui::TextUnformatted("Controller X-button + l/r-stick       : Slower rotate / move");
+			ImGui::TextUnformatted("Arrow up/down or mouse or r-stick     : Rotate camera up/down");
+			ImGui::TextUnformatted("Arrow left/right or mouse or r-stick  : Rotate camera left/right");
+			ImGui::TextUnformatted("Numpad 8/Numpad 5 or l-stick          : Move camera forward/backward");
+			ImGui::TextUnformatted("Numpad 4/Numpad 6 or l-stick          : Move camera left / right");
+			ImGui::TextUnformatted("Numpad 7/Numpad 9 or l/r-trigger      : Move camera up / down");
+			ImGui::TextUnformatted("Numpad 1/Numpad 3 or d-pad left/right : Tilt camera left / right");
+			ImGui::TextUnformatted("Numpad +/- or d-pad up/down           : Increase / decrease FoV");
+			ImGui::TextUnformatted("Numpad * or controller B-button       : Reset FoV");
+			ImGui::TextUnformatted("Numpad .                              : Block input to game for camera control device.");
+			ImGui::TextUnformatted("Numpad 0                              : Toggle game pause");
 		}
 
 		if (ImGui::CollapsingHeader("Settings editor help"))
@@ -276,7 +261,7 @@ Special thanks to:
 			settingsChanged |= ImGui::SliderFloat("Up movement multiplier", &currentSettings.movementUpMultiplier, 0.1f, 10.0f, "%.3f");
 			settingsChanged |= ImGui::SliderFloat("Movement speed", &currentSettings.movementSpeed, 0.01f, 0.2f, "%.3f");
 			settingsChanged |= ImGui::Combo("Camera control device", &currentSettings.cameraControlDevice, "Keyboard & Mouse\0Gamepad\0Both\0\0");
-			ImGui::SameLine(); showHelpMarker("The camera control device chosen will be blocked for game input.\n");
+			ImGui::SameLine(); ShowHelpMarker("The camera control device chosen will be blocked for game input.\n");
 			ImGui::TextUnformatted("");  ImGui::SameLine((ImGui::GetWindowWidth() * 0.3f) - 11.0f);
 			settingsChanged |= ImGui::Checkbox("Allow camera movement when this menu is up", &currentSettings.allowCameraMovementWhenMenuIsUp);
 		}
@@ -290,22 +275,11 @@ Special thanks to:
 		{
 			settingsChanged |= ImGui::SliderFloat("Field of View (FoV) zoom speed", &currentSettings.fovChangeSpeed, 0.0001f, 0.01f, "%.4f");
 			ImGui::SliderFloat("Resolution scale factor", &currentSettings.resolutionScale, 0.5f, 2.0f, "%.1f");
-			ImGui::SameLine(); showHelpMarker("Be careful with values bigger than 2 as it could make\nthe game crash due to too much overhead.\nYou can specify values bigger than 2 by using\nCtrl-click and then type the value.\nMax is 4.0.");
+			ImGui::SameLine(); ShowHelpMarker("Be careful with values bigger than 2 as it could make\nthe game crash due to too much overhead.\nYou can specify values bigger than 2 by using\nCtrl-click and then type the value.\nMax is 4.0.");
 
 			// Time of Day
 			ImGui::SliderInt("Time of Day (Hour)", &currentSettings.todHour, 0, 23);
 			ImGui::SliderInt("Time of Day (Minute)", &currentSettings.todMinute, 0, 59);
-
-			// Fog
-			ImGui::SliderFloat("Fog strength", &currentSettings.fogStrength, 0.1f, 200.0f, "%.1f");
-			ImGui::SameLine(); showHelpMarker("The strength of the fog. The higher the value, the thicker the fog volume.\nThe game fog is normally between 1 and 10.");
-
-			ImGui::SliderFloat("Fog start curve", &currentSettings.fogStartCurve, 0.0f, 1.0f, "%.3f");
-			ImGui::SameLine(); showHelpMarker("The fog start curve. Lowering this value to 0 makes the fog start further away.\nDefault is 1.0.");
-
-			// DOF enable / disable during camera
-			ImGui::TextUnformatted("");  ImGui::SameLine((ImGui::GetWindowWidth() * 0.3f) - 11.0f);
-			settingsChanged |= ImGui::Checkbox("Disable in-game DoF when camera is enabled", &currentSettings.disableInGameDofWhenCameraIsEnabled);
 		}
 		ImGui::PopItemWidth();
 		if (settingsChanged)
@@ -313,59 +287,6 @@ Special thanks to:
 			Globals::instance().markSettingsDirty();
 		}
 		GameSpecific::CameraManipulator::applySettingsToGameState();
-	}
-
-
-	void renderKeyBindings()
-	{
-		if (_actionKeyBindingEditing >= 0)
-		{
-			// a keybinding is being edited. Read current pressed keys into the collector, cumulatively;
-			Input::collectPressedKeysCumulatively();
-		}
-		if (ImGui::CollapsingHeader("Key-binding editing help"))
-		{
-			ImGui::PushTextWrapPos();
-			ImGui::TextUnformatted("Please click inside the textbox of the key-binding you want to change to change it. You can bind multiple actions to the same key combination. A key-binding with no other key than Alt, Shift and/or Ctrl won't be accepted as a valid key-binding.\n\n");
-			ImGui::TextUnformatted("NOTE: The 'Alt' key and the 'Right-Ctrl' key are hard-coded bound to augment acceleration of movement/rotation. Using these keys in your key-bindings for movement/rotation actions will therefore not have the desired effect. If you need to use a special key with the movement/rotation actions, use Shift instead. E.g. Shift-Up to move forward, Up for rotate up");
-			ImGui::PopTextWrapPos();
-		}
-		if (ImGui::CollapsingHeader("Configurable key-bindings", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.2f);
-			for (short i = 0; i < (short)ActionType::Amount; i++)
-			{
-				ActionData* action = Globals::instance().getActionData(static_cast<ActionType>(i));
-				if (nullptr == action)
-				{
-					continue;
-				}
-				string textBoxContents = (_actionKeyBindingEditing == i) ? Globals::instance().getKeyCollector().toString() : action->toString();	// The 'press a key' is inside ActionData.
-				ImGui::Text("%s", action->getDescription().c_str());
-				ImGui::SameLine(ImGui::GetWindowWidth() * 0.4f);
-				string keyBindingInputName = "##" + action->getName();	// a label starting with "##" is considered 'hidden' and can be used to add multiple elements in a list. 
-				ImGui::InputText(keyBindingInputName.c_str(), (char*)textBoxContents.c_str(), textBoxContents.size(), ImGuiInputTextFlags_ReadOnly);
-				if (ImGui::IsItemClicked())
-				{
-					startKeyBindingCapturing(i);
-				}
-				if (_actionKeyBindingEditing == i)
-				{
-					ImGui::SameLine();
-					// binding is being edited. This is ok, there's just 1 binding being edited at a time. 
-					if (ImGui::Button("OK"))
-					{
-						endKeyBindingCapturing(true);
-					}
-					ImGui::SameLine();
-					if (ImGui::Button("Cancel"))
-					{
-						endKeyBindingCapturing(false);
-					}
-				}
-			}
-			ImGui::PopItemWidth();
-		}
 	}
 
 
@@ -443,7 +364,7 @@ Special thanks to:
 		ImGui::PushStyleColor(ImGuiCol_Text, col);
 		ImGui::Text("Injectable Camera Tools v%s for %s", CAMERA_VERSION, GAME_NAME);
 		ImGui::Text("Camera credits: %s", CAMERA_CREDITS);
-		ImGui::Text("\nPress %s to open the main window.\n", Globals::instance().getActionData(ActionType::ToggleOverlay)->toString().c_str());
+		ImGui::Text("\nPress Ctrl-Ins to open the main window.\n");
 		ImGui::PopStyleColor();
 		ImGui::Separator();
 		col = ImVec4(1.0f, 1.0f, 1.0f, 0.6f);
@@ -467,7 +388,7 @@ Special thanks to:
 		return _showMainWindow;
 	}
 
-	void showHelpMarker(const char* desc)
+	void ShowHelpMarker(const char* desc)
 	{
 		ImGui::TextDisabled("(?)");
 		if (ImGui::IsItemHovered())
@@ -479,32 +400,5 @@ Special thanks to:
 			ImGui::EndTooltip();
 		}
 	}
-
-
-	void startKeyBindingCapturing(short actionType)
-	{
-		if (_actionKeyBindingEditing == actionType)
-		{
-			return;
-		}
-		if (_actionKeyBindingEditing >= 0)
-		{
-			endKeyBindingCapturing(false);
-		}
-		_actionKeyBindingEditing = actionType;
-	}
-
-
-	void endKeyBindingCapturing(bool acceptCollectedBinding)
-	{
-		ActionData& keyCollector = Globals::instance().getKeyCollector();
-		if (acceptCollectedBinding && _actionKeyBindingEditing >= 0 && keyCollector.isValid())
-		{
-			Globals::instance().updateActionDataForAction(static_cast<ActionType>((short)_actionKeyBindingEditing));
-		}
-		_actionKeyBindingEditing = -1;
-		keyCollector.clear();
-	}
-
 }
 

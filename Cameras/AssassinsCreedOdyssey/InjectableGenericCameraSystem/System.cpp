@@ -165,7 +165,11 @@ namespace IGCS
 			toggleTimestopState();
 			Sleep(350);				// wait for 350ms to avoid fast keyboard hammering
 		}
-
+		if (Input::isActionActivated(ActionType::LightfieldPhoto))
+		{
+			takeLightfieldPhoto();
+			Sleep(350);				// wait for 350ms to avoid fast keyboard hammering
+		}
 		if (Input::isActionActivated(ActionType::HudToggle))
 		{
 			toggleHudRenderState();
@@ -406,5 +410,11 @@ namespace IGCS
 	{
 		_hudToggled = !_hudToggled;
 		InterceptorHelper::toggleHudRenderState(_aobBlocks, _hudToggled);
+	}
+
+	void System::takeLightfieldPhoto()
+	{
+		OverlayConsole::instance().logLinev("Begin lightfield capture with view distance... %.3f", Globals::instance().settings().fovChangeSpeed);
+
 	}
 }
