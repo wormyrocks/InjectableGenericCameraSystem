@@ -35,7 +35,6 @@
 #include "InterceptorHelper.h"
 #include "InputHooker.h"
 #include "input.h"
-#include "CameraManipulator.h"
 #include "GameImageHooker.h"
 #include "UniversalD3D11Hook.h"
 #include "OverlayConsole.h"
@@ -182,40 +181,44 @@ namespace IGCS
 			Sleep(350);				// wait for 350ms to avoid fast keyboard hammering
 		}
 		_camera.resetMovement();
+		if (_isLightfieldCapturing)
+		{
+			if (captureFrame()) return;
+		}
 		Settings& settings = Globals::instance().settings();
 		if (Input::isActionActivated(ActionType::CameraLock))
 		{
 			toggleCameraMovementLockState(!_cameraMovementLocked);
 			Sleep(350);				// wait for 350ms to avoid fast keyboard hammering
 		}
+
+		bool altPressed = Utils::altPressed();
+		bool rcontrolPressed = Utils::keyDown(VK_RCONTROL);
+
+		if (Input::isActionActivated(ActionType::LightfieldPhoto))
+		{
+			takeLightfieldPhoto();
+			Sleep(200);				// wait for 200ms to avoid fast keyboard hammering
+		}
+		else if (Input::isActionActivated(ActionType::LightfieldLeft,true))
+		{
+			moveLightfield(-1, altPressed);
+			Sleep(200);				// wait for 200ms to avoid fast keyboard hammering
+		}
+		else if (Input::isActionActivated(ActionType::LightfieldRight,true))
+		{
+			moveLightfield(1, altPressed);
+			Sleep(200);				// wait for 200ms to avoid fast keyboard hammering
+		}
 		if (_cameraMovementLocked)
 		{
 			// no movement allowed, simply return
 			return;
 		}
-
-		bool altPressed = Utils::altPressed();
-		bool rcontrolPressed = Utils::keyDown(VK_RCONTROL);
 		float multiplier = altPressed ? settings.fastMovementMultiplier : rcontrolPressed ? settings.slowMovementMultiplier : 1.0f;
 		handleKeyboardCameraMovement(multiplier);
 		handleMouseCameraMovement(multiplier);
 		handleGamePadMovement(multiplier);
-
-		if (Input::isActionActivated(ActionType::LightfieldPhoto))
-		{
-			takeLightfieldPhoto();
-			Sleep(200);				// wait for 350ms to avoid fast keyboard hammering
-		}
-		if (Input::isActionActivated(ActionType::LightfieldLeft))
-		{
-			moveLightfield(-1, altPressed);
-			Sleep(200);				// wait for 350ms to avoid fast keyboard hammering
-		}
-		if (Input::isActionActivated(ActionType::LightfieldRight))
-		{
-			moveLightfield(1, altPressed);
-			Sleep(200);				// wait for 350ms to avoid fast keyboard hammering
-		}
 	}
 
 
@@ -425,16 +428,51 @@ namespace IGCS
 
 	void System::takeLightfieldPhoto()
 	{
-		OverlayConsole::instance().logLine("Lightfield camera centered.");
+		if (!_isLightfieldCapturing) {
+			_currentView = 0;
+			_isLightfieldCapturing = true;
+			OverlayConsole::instance().logLine("Lightfield photo begin.");
+			moveLightfield(-1, true, false);
+		}
+	}
+	bool System::captureFrame()
+	{
+		// stbi function here
+		if (_currentView >= Globals::instance().settings().lkgViewCount) {
+			_isLightfieldCapturing = false;
+			moveLightfield(-1, true, false);
+			OverlayConsole::instance().logLine("Lightfield photo end.");
+			return false;
+		}
+		/*string log = "Capturing view: " + to_string(_currentView) + "/" + to_string(Globals::instance().settings().lkgViewCount);
+		OverlayConsole::instance().logLine(log.c_str());
+		OverlayControl::addNotification(log.c_str());*/
+		_currentView++;
+		moveLightfield(1, false, false);
+		return true;
 	}
 	void System::moveLightfield(int direction, bool end)
 	{
+		moveLightfield(direction, end, true);
+	}
+	void System::moveLightfield(int direction, bool end, bool log)
+	{
+		OverlayControl::addNotification("moveLightfield called");
+		log = !log;
 		if (end) {
-			OverlayConsole::instance().logLine((direction > 0) ? "Move to last lightfield position.":"Move to first lightfield position.");
-			_camera.moveRight(direction*Globals::instance().settings().lkgViewDistance);
+			if (log) {
+				//OverlayConsole::instance().logLine((direction > 0) ? "Move to end." : "Move to start.");
+				OverlayControl::addNotification((direction > 0) ? "Move to end." : "Move to start.");
+			}
+			float dist = direction * 0.5f*(Globals::instance().settings().lkgViewDistance)*(Globals::instance().settings().lkgViewCount);
+			_camera.moveRight(dist);
 			return;
 		}
-		OverlayConsole::instance().logLine((direction > 0) ? "Move to next lightfield position." : "Move to previous lightfield position.");
-		_camera.moveRight(direction*Globals::instance().settings().lkgViewDistance);
+		if (log) {
+			//OverlayConsole::instance().logLine((direction > 0) ? "Move to next." : "Move to previous.");
+			OverlayControl::addNotification((direction > 0) ? "Move to next." : "Move to previous.");
+		}
+		float dist = direction * (Globals::instance().settings().lkgViewDistance);
+		_camera.moveRight(dist);
 	}
 }

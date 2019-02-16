@@ -57,7 +57,10 @@ namespace IGCS
 		void toggleTimestopState();
 		void toggleHudRenderState();
 		void takeLightfieldPhoto();
+		bool captureFrame();
 		void moveLightfield(int direction, bool end);
+		void moveLightfield(int direction, bool end, bool log);
+
 
 		Camera _camera;
 		LPBYTE _hostImageAddress;
@@ -66,6 +69,8 @@ namespace IGCS
 		bool _cameraMovementLocked = false;
 		bool _cameraStructFound = false;
 		bool _hudToggled = false;
+		int _currentView = 0;
+		bool _isLightfieldCapturing = false;
 		map<string, AOBBlock*> _aobBlocks;
 	};
 }

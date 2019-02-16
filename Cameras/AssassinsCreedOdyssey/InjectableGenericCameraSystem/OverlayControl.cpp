@@ -216,9 +216,11 @@ Special thanks to:
 			ImGui::TextUnformatted("Numpad * or controller B-button       : Reset FoV");
 			ImGui::TextUnformatted("Numpad .                              : Block input to game for camera control device.");
 			ImGui::TextUnformatted("Numpad 0                              : Toggle game pause");
-			ImGui::TextUnformatted("CTRL + PgUp                           : Beginning of lightfield photo path");
-			ImGui::TextUnformatted("CTRL + PgDn                           : End of lightfield photo path");
-			ImGui::TextUnformatted("CTRL + Home                           : Take lightfield photo");
+			ImGui::TextUnformatted("PgUp								  : Previous view");
+			ImGui::TextUnformatted("PgDn								  : Next view");
+			ImGui::TextUnformatted("Alt+PgDn							  : First view");
+			ImGui::TextUnformatted("Alt+PgUp							  : Last view");
+			ImGui::TextUnformatted("Home								  : Lightfield capture");
 		}
 
 		if (ImGui::CollapsingHeader("Settings editor help"))
@@ -287,6 +289,7 @@ Special thanks to:
 		if (ImGui::CollapsingHeader("Looking Glass options", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			settingsChanged |= ImGui::SliderFloat("LKG view distance", &currentSettings.lkgViewDistance, 0.0f, 20.0f, "%.3f");
+			settingsChanged |= ImGui::SliderInt("LKG view count", &currentSettings.lkgViewCount, 0, 60);
 		}
 		ImGui::PopItemWidth();
 		if (settingsChanged)

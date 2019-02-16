@@ -23,6 +23,8 @@ namespace IGCS
 		int cameraControlDevice;		// 0==keyboard/mouse, 1 == gamepad, 2 == both, see Defaults.h
 		bool allowCameraMovementWhenMenuIsUp;
 		bool disableInGameDofWhenCameraIsEnabled;
+		float lkgViewDistance;
+		int lkgViewCount;
 
 		// settings not persisted to config file.
 		// add settings to edit here.
@@ -31,7 +33,6 @@ namespace IGCS
 		int todMinute;					// 0-59
 		float fogStrength;				// 0-200. 0 is no fog (ugly), 200 is thick fog all around you. Can go higher if one wants.
 		float fogStartCurve;			// 0-1. 1 is default. 
-		float lkgViewDistance;
 
 		void loadFromFile(map<ActionType, ActionData*> keyBindingPerActionType)
 		{
@@ -52,6 +53,7 @@ namespace IGCS
 			fovChangeSpeed = Utils::clamp(iniFile.GetFloat("fovChangeSpeed", "CameraSettings"), 0.0f, DEFAULT_FOV_SPEED);
 			cameraControlDevice = Utils::clamp(iniFile.GetInt("cameraControlDevice", "CameraSettings"), 0, DEVICE_ID_ALL, DEVICE_ID_ALL);
 			lkgViewDistance = Utils::clamp(iniFile.GetFloat("lkgViewDistance", "CameraSettings"), 0.0f, 1.0f);
+			lkgViewCount = Utils::clamp(iniFile.GetInt("lkgViewCount", "CameraSettings"), 0, 45);
 
 			// load keybindings. They might not be there, or incomplete. 
 			for (std::pair<ActionType, ActionData*> kvp : keyBindingPerActionType)
@@ -80,7 +82,8 @@ namespace IGCS
 			iniFile.SetFloat("rotationSpeed", rotationSpeed, "", "CameraSettings");
 			iniFile.SetFloat("fovChangeSpeed", fovChangeSpeed, "", "CameraSettings");
 			iniFile.SetInt("cameraControlDevice", cameraControlDevice, "", "CameraSettings");
-			iniFile.SetFloat("lkgViewDistance", cameraControlDevice, "", "CameraSettings");
+			iniFile.SetFloat("lkgViewDistance", lkgViewDistance, "", "CameraSettings");
+			iniFile.SetInt("lkgViewCount", lkgViewCount, "", "CameraSettings");
 
 			// save keybindings
 			if (!keyBindingPerActionType.empty())
@@ -111,6 +114,8 @@ namespace IGCS
 			cameraControlDevice = DEVICE_ID_ALL;
 			allowCameraMovementWhenMenuIsUp = false;
 			disableInGameDofWhenCameraIsEnabled = false;
+			lkgViewDistance = 1.0f;
+			lkgViewCount = 45;
 
 			if (!persistedOnly)
 			{

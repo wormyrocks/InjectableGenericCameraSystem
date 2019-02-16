@@ -134,9 +134,9 @@ namespace IGCS
 		_keyBindingPerActionType[ActionType::TiltLeft] = new ActionData("TiltLeft", "Tilt camera left", IGCS_KEY_TILT_LEFT, false, false, false);
 		_keyBindingPerActionType[ActionType::TiltRight] = new ActionData("TiltRight", "Tilt camera right", IGCS_KEY_TILT_RIGHT, false, false, false);
 		_keyBindingPerActionType[ActionType::ToggleOverlay] = new ActionData("ToggleOverlay", "Show / hide camera tools main window", IGCS_KEY_TOGGLE_OVERLAY, false, true, false);
-		_keyBindingPerActionType[ActionType::LightfieldPhoto] = new ActionData("LightfieldPhoto", "Center Lightfield Photo", IGCS_KEY_LIGHTFIELD_PHOTO, false, true, false);
-		_keyBindingPerActionType[ActionType::LightfieldLeft] = new ActionData("LightfieldLeft", "Move View Left", IGCS_KEY_LIGHTFIELD_LEFT, false, true, false);
-		_keyBindingPerActionType[ActionType::LightfieldRight] = new ActionData("LightfieldRight", "Move View Right", IGCS_KEY_LIGHTFIELD_RIGHT, false, true, false);
+		_keyBindingPerActionType[ActionType::LightfieldPhoto] = new ActionData("LightfieldPhoto", "Center Lightfield Photo", IGCS_KEY_LIGHTFIELD_PHOTO, false, false, false);
+		_keyBindingPerActionType[ActionType::LightfieldLeft] = new ActionData("LightfieldLeft", "Move View Left", IGCS_KEY_LIGHTFIELD_LEFT, false, false, false);
+		_keyBindingPerActionType[ActionType::LightfieldRight] = new ActionData("LightfieldRight", "Move View Right", IGCS_KEY_LIGHTFIELD_RIGHT, false, false, false);
 
 		// Bindings which are often optional. Specify 'false' for available to disable it if the binding should be hidden. 
 		_keyBindingPerActionType[ActionType::HudToggle] = new ActionData("HudToggle", "Toggle HUD", IGCS_KEY_HUD_TOGGLE, false, false, false);
