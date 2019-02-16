@@ -62,7 +62,8 @@ namespace IGCS
 	#define IGCS_KEY_TIMESTOP						VK_NUMPAD0
 	#define IGCS_KEY_HUD_TOGGLE						VK_DELETE
 	#define IGCS_KEY_LIGHTFIELD_PHOTO				VK_HOME			// with control
-
+	#define IGCS_KEY_LIGHTFIELD_LEFT				VK_PRIOR // with control
+	#define IGCS_KEY_LIGHTFIELD_RIGHT				VK_NEXT// with control
 
 	#define IGCS_BUTTON_FOV_DECREASE	Gamepad::button_t::UP
 	#define IGCS_BUTTON_FOV_INCREASE	Gamepad::button_t::DOWN

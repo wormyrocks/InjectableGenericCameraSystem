@@ -165,11 +165,6 @@ namespace IGCS
 			toggleTimestopState();
 			Sleep(350);				// wait for 350ms to avoid fast keyboard hammering
 		}
-		if (Input::isActionActivated(ActionType::LightfieldPhoto))
-		{
-			takeLightfieldPhoto();
-			Sleep(350);				// wait for 350ms to avoid fast keyboard hammering
-		}
 		if (Input::isActionActivated(ActionType::HudToggle))
 		{
 			toggleHudRenderState();
@@ -205,6 +200,22 @@ namespace IGCS
 		handleKeyboardCameraMovement(multiplier);
 		handleMouseCameraMovement(multiplier);
 		handleGamePadMovement(multiplier);
+
+		if (Input::isActionActivated(ActionType::LightfieldPhoto))
+		{
+			takeLightfieldPhoto();
+			Sleep(200);				// wait for 350ms to avoid fast keyboard hammering
+		}
+		if (Input::isActionActivated(ActionType::LightfieldLeft))
+		{
+			moveLightfield(-1, altPressed);
+			Sleep(200);				// wait for 350ms to avoid fast keyboard hammering
+		}
+		if (Input::isActionActivated(ActionType::LightfieldRight))
+		{
+			moveLightfield(1, altPressed);
+			Sleep(200);				// wait for 350ms to avoid fast keyboard hammering
+		}
 	}
 
 
@@ -414,6 +425,16 @@ namespace IGCS
 
 	void System::takeLightfieldPhoto()
 	{
-		OverlayConsole::instance().logLine("Begin lightfield capture");
+		OverlayConsole::instance().logLine("Lightfield camera centered.");
+	}
+	void System::moveLightfield(int direction, bool end)
+	{
+		if (end) {
+			OverlayConsole::instance().logLine((direction > 0) ? "Move to last lightfield position.":"Move to first lightfield position.");
+			_camera.moveRight(direction*Globals::instance().settings().lkgViewDistance);
+			return;
+		}
+		OverlayConsole::instance().logLine((direction > 0) ? "Move to next lightfield position." : "Move to previous lightfield position.");
+		_camera.moveRight(direction*Globals::instance().settings().lkgViewDistance);
 	}
 }

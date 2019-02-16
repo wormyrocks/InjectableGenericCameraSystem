@@ -57,6 +57,7 @@ namespace IGCS
 		void toggleTimestopState();
 		void toggleHudRenderState();
 		void takeLightfieldPhoto();
+		void moveLightfield(int direction, bool end);
 
 		Camera _camera;
 		LPBYTE _hostImageAddress;

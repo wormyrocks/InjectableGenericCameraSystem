@@ -54,6 +54,8 @@ namespace IGCS
 		Timestop,
 		ToggleOverlay,
 		LightfieldPhoto,
+		LightfieldLeft,
+		LightfieldRight,
 		Amount,
 	};
 

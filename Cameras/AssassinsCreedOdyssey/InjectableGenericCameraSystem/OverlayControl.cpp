@@ -216,6 +216,9 @@ Special thanks to:
 			ImGui::TextUnformatted("Numpad * or controller B-button       : Reset FoV");
 			ImGui::TextUnformatted("Numpad .                              : Block input to game for camera control device.");
 			ImGui::TextUnformatted("Numpad 0                              : Toggle game pause");
+			ImGui::TextUnformatted("CTRL + PgUp                           : Beginning of lightfield photo path");
+			ImGui::TextUnformatted("CTRL + PgDn                           : End of lightfield photo path");
+			ImGui::TextUnformatted("CTRL + Home                           : Take lightfield photo");
 		}
 
 		if (ImGui::CollapsingHeader("Settings editor help"))
@@ -280,6 +283,10 @@ Special thanks to:
 			// Time of Day
 			ImGui::SliderInt("Time of Day (Hour)", &currentSettings.todHour, 0, 23);
 			ImGui::SliderInt("Time of Day (Minute)", &currentSettings.todMinute, 0, 59);
+		}
+		if (ImGui::CollapsingHeader("Looking Glass options", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			settingsChanged |= ImGui::SliderFloat("LKG view distance", &currentSettings.lkgViewDistance, 0.0f, 20.0f, "%.3f");
 		}
 		ImGui::PopItemWidth();
 		if (settingsChanged)

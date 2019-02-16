@@ -51,6 +51,7 @@ namespace IGCS
 			rotationSpeed = Utils::clamp(iniFile.GetFloat("rotationSpeed", "CameraSettings"), 0.0f, DEFAULT_ROTATION_SPEED);
 			fovChangeSpeed = Utils::clamp(iniFile.GetFloat("fovChangeSpeed", "CameraSettings"), 0.0f, DEFAULT_FOV_SPEED);
 			cameraControlDevice = Utils::clamp(iniFile.GetInt("cameraControlDevice", "CameraSettings"), 0, DEVICE_ID_ALL, DEVICE_ID_ALL);
+			lkgViewDistance = Utils::clamp(iniFile.GetFloat("lkgViewDistance", "CameraSettings"), 0.0f, 1.0f);
 
 			// load keybindings. They might not be there, or incomplete. 
 			for (std::pair<ActionType, ActionData*> kvp : keyBindingPerActionType)
@@ -79,7 +80,7 @@ namespace IGCS
 			iniFile.SetFloat("rotationSpeed", rotationSpeed, "", "CameraSettings");
 			iniFile.SetFloat("fovChangeSpeed", fovChangeSpeed, "", "CameraSettings");
 			iniFile.SetInt("cameraControlDevice", cameraControlDevice, "", "CameraSettings");
-			iniFile.SetInt("lkgViewDistance", cameraControlDevice, "", "CameraSettings");
+			iniFile.SetFloat("lkgViewDistance", cameraControlDevice, "", "CameraSettings");
 
 			// save keybindings
 			if (!keyBindingPerActionType.empty())
