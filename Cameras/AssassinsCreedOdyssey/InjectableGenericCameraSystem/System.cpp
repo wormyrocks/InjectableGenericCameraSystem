@@ -425,7 +425,6 @@ namespace IGCS
 		_hudToggled = !_hudToggled;
 		InterceptorHelper::toggleHudRenderState(_aobBlocks, _hudToggled);
 	}
-
 	void System::takeLightfieldPhoto()
 	{
 		if (!_isLightfieldCapturing) {
@@ -437,7 +436,6 @@ namespace IGCS
 	}
 	bool System::captureFrame()
 	{
-		// stbi function here
 		if (_currentView >= Globals::instance().settings().lkgViewCount) {
 			_isLightfieldCapturing = false;
 			moveLightfield(-1, true, false);

@@ -43,4 +43,5 @@ namespace IGCS::Input
 	bool isActionActivated(ActionType type);
 	bool isActionActivated(ActionType type, bool altCtrlShiftOptional);
 	void collectPressedKeysCumulatively();
+	void pressKey(char vk, bool press);
 }

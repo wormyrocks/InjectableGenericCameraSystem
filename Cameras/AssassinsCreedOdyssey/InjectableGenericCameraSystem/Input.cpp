@@ -130,7 +130,6 @@ namespace IGCS::Input
 		}
 	}
 
-
 	void resetMouseState()
 	{
 		// clear 0x08 bit on mouse buttons in mouse state array so we avoid repeat issues.
