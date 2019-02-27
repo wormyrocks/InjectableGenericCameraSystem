@@ -109,13 +109,17 @@ namespace IGCS
 	void System::handleUserInput()
 	{
 		Globals::instance().gamePad().update();
+		if (_applyHammerPrevention)
+		{
+			_applyHammerPrevention = false;
+			// sleep main thread for 200ms so key repeat delay is simulated. 
+			Sleep(200);
+		}
 
 		if (Input::isActionActivated(ActionType::ToggleOverlay))
 		{
 			OverlayControl::toggleOverlay();
-			Sleep(350);		// wait 100ms to avoid fast keyboard hammering
-			// we're done now. 
-			return;
+			_applyHammerPrevention = true;
 		}
 		if (!_cameraStructFound)
 		{
@@ -145,7 +149,7 @@ namespace IGCS
 			}
 			g_cameraEnabled = g_cameraEnabled == 0 ? (BYTE)1 : (BYTE)0;
 			displayCameraState();
-			Sleep(350);				// wait for 350ms to avoid fast keyboard hammering
+			_applyHammerPrevention = true;
 		}
 		if (Input::isActionActivated(ActionType::FovReset) && Globals::instance().keyboardMouseControlCamera())
 		{
@@ -162,12 +166,12 @@ namespace IGCS
 		if (Input::isActionActivated(ActionType::Timestop))
 		{
 			toggleTimestopState();
-			Sleep(350);				// wait for 350ms to avoid fast keyboard hammering
+			_applyHammerPrevention = true;
 		}
 		if (Input::isActionActivated(ActionType::HudToggle))
 		{
 			toggleHudRenderState();
-			Sleep(350);
+			_applyHammerPrevention = true;
 		}
 
 		if (!g_cameraEnabled)
@@ -178,7 +182,7 @@ namespace IGCS
 		if (Input::isActionActivated(ActionType::BlockInput))
 		{
 			toggleInputBlockState(!Globals::instance().inputBlocked());
-			Sleep(350);				// wait for 350ms to avoid fast keyboard hammering
+			_applyHammerPrevention = true;
 		}
 		_camera.resetMovement();
 		if (_isLightfieldCapturing)
@@ -189,7 +193,7 @@ namespace IGCS
 		if (Input::isActionActivated(ActionType::CameraLock))
 		{
 			toggleCameraMovementLockState(!_cameraMovementLocked);
-			Sleep(350);				// wait for 350ms to avoid fast keyboard hammering
+			_applyHammerPrevention = true;
 		}
 
 		bool altPressed = Utils::altPressed();
