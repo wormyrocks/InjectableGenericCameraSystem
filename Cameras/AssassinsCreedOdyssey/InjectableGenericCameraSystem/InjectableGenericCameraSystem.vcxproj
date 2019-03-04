@@ -164,6 +164,7 @@
     <ClInclude Include="GameImageHooker.h" />
     <ClInclude Include="Gamepad.h" />
     <ClInclude Include="Globals.h" />
+    <ClInclude Include="com_ptr.hpp" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="InputHooker.h" />
     <ClInclude Include="InterceptorHelper.h" />

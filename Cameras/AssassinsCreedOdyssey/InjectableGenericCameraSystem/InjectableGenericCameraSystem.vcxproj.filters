@@ -112,6 +112,9 @@
     <ClInclude Include="ActionData.h">
       <Filter>Input</Filter>
     </ClInclude>
+    <ClInclude Include="com_ptr.hpp">
+      <Filter>Misc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="InterceptorHelper.cpp">

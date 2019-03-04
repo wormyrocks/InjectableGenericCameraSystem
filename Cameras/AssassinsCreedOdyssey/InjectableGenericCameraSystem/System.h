@@ -71,6 +71,7 @@ namespace IGCS
 		bool _hudToggled = false;
 		int _currentView = 0;
 		bool _isLightfieldCapturing = false;
+		int _screenshot_ts[4] = {};
 		map<string, AOBBlock*> _aobBlocks;
 		bool _applyHammerPrevention = false;	// set to true by a keyboard action and which triggers a sleep before keyboard handling is performed.
 	};

@@ -35,7 +35,7 @@ namespace IGCS
 	// System defaults
 	#define FRAME_SLEEP								8		// in milliseconds
 	#define IGCS_OVERLAY_INI_FILENAME				"IGCS_overlay.ini"
-	#define IGCS_SETTINGS_INI_FILENAME				"IGCS_settingss.ini"
+	#define IGCS_SETTINGS_INI_FILENAME				"IGCS_settings.ini"
 	#define IGCS_SETTINGS_SAVE_DELAY				5.0f	// in seconds
 	#define IGCS_SPLASH_DURATION					8.0f	// in seconds
 
@@ -59,7 +59,7 @@ namespace IGCS
 	#define IGCS_KEY_FOV_INCREASE					VK_ADD
 	#define IGCS_KEY_FOV_DECREASE					VK_SUBTRACT
 	#define IGCS_KEY_BLOCK_INPUT					VK_DECIMAL
-	#define IGCS_KEY_TIMESTOP						VK_NUMPAD0
+	#define IGCS_KEY_TIMESTOP						VK_F5//VK_NUMPAD0
 	#define IGCS_KEY_HUD_TOGGLE						VK_DELETE
 	#define IGCS_KEY_LIGHTFIELD_PHOTO				VK_END
 	#define IGCS_KEY_LIGHTFIELD_LEFT				VK_PRIOR

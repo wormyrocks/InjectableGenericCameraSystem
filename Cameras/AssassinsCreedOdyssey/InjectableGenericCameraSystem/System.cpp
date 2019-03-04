@@ -40,6 +40,7 @@
 #include "OverlayConsole.h"
 #include "OverlayControl.h"
 #include "MinHook.h"
+#include <time.h>
 
 namespace IGCS
 {
@@ -434,6 +435,13 @@ namespace IGCS
 		if (!_isLightfieldCapturing) {
 			_currentView = 0;
 			_isLightfieldCapturing = true;
+			time_t t = time(nullptr);
+			tm tm;
+			localtime_s(&tm, &t);
+			_screenshot_ts[0] = tm.tm_year + 1900;
+			_screenshot_ts[1] = tm.tm_mon + 1;
+			_screenshot_ts[2] = tm.tm_mday;
+			_screenshot_ts[3] = tm.tm_hour * 3600 + tm.tm_min * 60 + tm.tm_sec;
 			OverlayConsole::instance().logLine("Lightfield photo begin.");
 			moveLightfield(-1, true, false);
 		}
@@ -449,7 +457,19 @@ namespace IGCS
 		/*string log = "Capturing view: " + to_string(_currentView) + "/" + to_string(Globals::instance().settings().lkgViewCount);
 		OverlayConsole::instance().logLine(log.c_str());
 		OverlayControl::addNotification(log.c_str());*/
+		const int hour = _screenshot_ts[3] / 3600;
+		const int minute = (_screenshot_ts[3] - hour * 3600) / 60;
+		const int seconds = _screenshot_ts[3] - hour * 3600 - minute * 60;
+
+		char filename[100];
+		int cx;
+		cx = sprintf(filename, "C:\\Users\\theka\\Desktop\\aco_screenshots\\%.4d-%.2d-%.2d %.2d-%.2d-%.2d-%d.png", _screenshot_ts[0], _screenshot_ts[1], _screenshot_ts[2], hour, minute, seconds, _currentView);
+
+		OverlayConsole::instance().logDebug("Saving screenshot to... %s", filename);
+
+		DX11Hooker::takeScreenshot(filename);
 		_currentView++;
+
 		moveLightfield(1, false, false);
 		return true;
 	}
