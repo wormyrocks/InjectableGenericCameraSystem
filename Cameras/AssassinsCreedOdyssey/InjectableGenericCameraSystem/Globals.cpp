@@ -137,6 +137,7 @@ namespace IGCS
 		_keyBindingPerActionType[ActionType::LightfieldPhoto] = new ActionData("LightfieldPhoto", "Center Lightfield Photo", IGCS_KEY_LIGHTFIELD_PHOTO, false, false, false);
 		_keyBindingPerActionType[ActionType::LightfieldLeft] = new ActionData("LightfieldLeft", "Move View Left", IGCS_KEY_LIGHTFIELD_LEFT, false, false, false);
 		_keyBindingPerActionType[ActionType::LightfieldRight] = new ActionData("LightfieldRight", "Move View Right", IGCS_KEY_LIGHTFIELD_RIGHT, false, false, false);
+		_keyBindingPerActionType[ActionType::SingleScreenshot] = new ActionData("SingleScreenshot", "Take single screenshot", IGCS_KEY_SINGLE_SCREENSHOT, false, false, false);
 
 		// Bindings which are often optional. Specify 'false' for available to disable it if the binding should be hidden. 
 		_keyBindingPerActionType[ActionType::HudToggle] = new ActionData("HudToggle", "Toggle HUD", IGCS_KEY_HUD_TOGGLE, false, false, false);

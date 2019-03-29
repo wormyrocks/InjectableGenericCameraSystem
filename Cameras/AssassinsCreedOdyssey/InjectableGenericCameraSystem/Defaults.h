@@ -64,6 +64,7 @@ namespace IGCS
 	#define IGCS_KEY_LIGHTFIELD_PHOTO				VK_END
 	#define IGCS_KEY_LIGHTFIELD_LEFT				VK_PRIOR
 	#define IGCS_KEY_LIGHTFIELD_RIGHT				VK_NEXT
+	#define IGCS_KEY_SINGLE_SCREENSHOT				VK_PAUSE
 
 	#define IGCS_BUTTON_FOV_DECREASE	Gamepad::button_t::UP
 	#define IGCS_BUTTON_FOV_INCREASE	Gamepad::button_t::DOWN
@@ -72,7 +73,6 @@ namespace IGCS
 	#define IGCS_BUTTON_TILT_RIGHT		Gamepad::button_t::RIGHT
 	#define IGCS_BUTTON_FASTER			Gamepad::button_t::Y
 	#define IGCS_BUTTON_SLOWER			Gamepad::button_t::X
-	#define IGCS_BUTTON_SINGLE_SCREENSHOT Gamepad::button_t::BACK
 
 	static const BYTE jmpFarInstructionBytes[6] = { 0xff, 0x25, 0, 0, 0, 0 };	// instruction bytes for jmp qword ptr [0000]
 

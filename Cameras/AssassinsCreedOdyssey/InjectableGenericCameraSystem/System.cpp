@@ -19,7 +19,7 @@
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 // DISCLAIMED.IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
 // FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// DAMAGES(INCLUDING, BUT NOT LIMITED TO, PRO0MENT OF SUBSTITUTE GOODS OR
 // SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 // CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 // OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
@@ -117,9 +117,9 @@ namespace IGCS
 			// sleep main thread for 200ms so key repeat delay is simulated. 
 			Sleep(200);
 		}
-		if (Globals::instance().gamePad().isButtonPressed(IGCS_BUTTON_SINGLE_SCREENSHOT))
-		{
+		if (Input::isActionActivated(ActionType::SingleScreenshot)) {
 			singleScreenshot();
+			_applyHammerPrevention = true;
 		}
 		if (Input::isActionActivated(ActionType::ToggleOverlay))
 		{
@@ -192,7 +192,26 @@ namespace IGCS
 		_camera.resetMovement();
 		if (_isLightfieldCapturing)
 		{
-			if (captureFrame()) return;
+			if (framesToGrab == 0) {
+				_isLightfieldCapturing = false;
+				moveLightfield(-1, true, false);
+				OverlayConsole::instance().logLine("Lightfield photo end.");
+				CameraManipulator::setTimeStopValue(_timeStopped);
+				InterceptorHelper::toggleHudRenderState(_aobBlocks, _hudToggled);
+			}
+			else {
+				// synchronize camera position with lightfield capture
+				if (!_lightfieldHookInited) {
+					OverlayConsole::instance().logLine("Lightfield photo begin.");
+					startCapture(framesToGrab);
+					_lightfieldHookInited = true;
+				} else if (framesToGrab >= DX11Hooker::framesRemaining()) {
+					--framesToGrab;
+					moveLightfield(1, false, false);
+					return;
+				}
+				DX11Hooker::syncFramesToGrab(framesToGrab);
+			}
 		}
 		Settings& settings = Globals::instance().settings();
 		if (Input::isActionActivated(ActionType::CameraLock))
@@ -434,24 +453,42 @@ namespace IGCS
 		_hudToggled = !_hudToggled;
 		InterceptorHelper::toggleHudRenderState(_aobBlocks, _hudToggled);
 	}
-	void System::takeLightfieldPhoto()
-	{
-		if (!_isLightfieldCapturing) {
-			_currentView = 0;
-			_isLightfieldCapturing = true;
-			time_t t = time(nullptr);
-			tm tm;
-			localtime_s(&tm, &t);
-			_screenshot_ts[0] = tm.tm_year + 1900;
-			_screenshot_ts[1] = tm.tm_mon + 1;
-			_screenshot_ts[2] = tm.tm_mday;
-			_screenshot_ts[3] = tm.tm_hour * 3600 + tm.tm_min * 60 + tm.tm_sec;
-			OverlayConsole::instance().logLine("Lightfield photo begin.");
-			moveLightfield(-1, true, false);
-		}
-	}
 	void System::singleScreenshot()
 	{
+		if (!DX11Hooker::isDoneSavingImages()) return;
+		if (_isLightfieldCapturing) return;
+		startCapture(1);
+	}
+	int direxists(const char* path) {
+		struct stat info;
+		if (stat(path, &info) != 0)
+			return 0;
+		else if (info.st_mode & S_IFDIR)
+			return 1;
+		else
+			return 0;
+	}
+	void System::takeLightfieldPhoto()
+	{
+		if (!direxists(Globals::instance().settings().screenshotDirectory))
+		{
+			OverlayConsole::instance().logError("Screenshot target directory does not exist!");
+			return;
+		}
+		if (_isLightfieldCapturing || !DX11Hooker::isDoneSavingImages()) {
+			OverlayConsole::instance().logError("Previous capture not complete!");
+			return;
+		}
+		InterceptorHelper::toggleHudRenderState(_aobBlocks, true);
+		CameraManipulator::setTimeStopValue(true);
+		moveLightfield(-1, true, false);
+		_lightfieldHookInited = false;
+		framesToGrab = Globals::instance().settings().lkgViewCount;
+		_isLightfieldCapturing = true;
+	}
+	void System::startCapture(int numViews = 1)
+	{
+		OverlayConsole::instance().logLine("Time stopped.");
 		time_t t = time(nullptr);
 		tm tm;
 		localtime_s(&tm, &t);
@@ -462,36 +499,15 @@ namespace IGCS
 		const int hour = _screenshot_ts[3] / 3600;
 		const int minute = (_screenshot_ts[3] - hour * 3600) / 60;
 		const int seconds = _screenshot_ts[3] - hour * 3600 - minute * 60;
-		char filename[500];
-		int cx;
-		cx = sprintf(filename, "%s\\%.4d-%.2d-%.2d-%.2d-%.2d-%.2d-%d.png", Globals::instance().settings().screenshotDirectory,_screenshot_ts[0], _screenshot_ts[1], _screenshot_ts[2], hour, minute, seconds, _currentView);
-		OverlayConsole::instance().logDebug("singleScreenshot() %s", filename);
-		DX11Hooker::takeScreenshot(filename);
-	}
-	bool System::captureFrame()
-	{
-		if (_currentView >= Globals::instance().settings().lkgViewCount) {
-			_isLightfieldCapturing = false;
-			moveLightfield(-1, true, false);
-			OverlayConsole::instance().logLine("Lightfield photo end.");
-			return false;
+		char buf[500];
+		char* optional_backslash = "";
+		char* screenshot_dir = Globals::instance().settings().screenshotDirectory;
+		if (screenshot_dir[strlen(screenshot_dir) - 1] != '\\') {
+			optional_backslash = "\\";
 		}
-		/*string log = "Capturing view: " + to_string(_currentView) + "/" + to_string(Globals::instance().settings().lkgViewCount);
-		OverlayConsole::instance().logLine(log.c_str());
-		OverlayControl::addNotification(log.c_str());*/
-		const int hour = _screenshot_ts[3] / 3600;
-		const int minute = (_screenshot_ts[3] - hour * 3600) / 60;
-		const int seconds = _screenshot_ts[3] - hour * 3600 - minute * 60;
-		int cx;
-		cx = sprintf(filename, "%s\\%.4d-%.2d-%.2d-%.2d-%.2d-%.2d-%d.png", Globals::instance().settings().screenshotDirectory, _screenshot_ts[0], _screenshot_ts[1], _screenshot_ts[2], hour, minute, seconds, _currentView);
-
-		OverlayConsole::instance().logDebug("Saving screenshot to... %s", filename);
-
-		DX11Hooker::takeScreenshot(filename);
-		_currentView++;
-
-		moveLightfield(1, false, false);
-		return true;
+		sprintf(buf, "%s%s%.4d-%.2d-%.2d-%.2d-%.2d-%.2d", screenshot_dir, optional_backslash, _screenshot_ts[0], _screenshot_ts[1], _screenshot_ts[2], hour, minute, seconds);
+		mkdir(buf);
+		DX11Hooker::takeScreenshot(buf,numViews);
 	}
 	void System::moveLightfield(int direction, bool end)
 	{

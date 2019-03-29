@@ -10,6 +10,7 @@
 #include "OverlayControl.h"
 #include "OverlayConsole.h"
 #include "Input.h"
+#include <thread>
 #include <atomic>
 #include <time.h>
 #include <filesystem>
@@ -43,8 +44,10 @@ namespace IGCS::DX11Hooker
 	UINT _width;
 	UINT _height;
 	char _filename[500];
-	bool doTakeScreenshot;
-	
+	volatile int framesToGrab;
+	volatile int framesToGrabSync;
+	volatile bool _isDoneSavingImages=true;
+	std::vector<std::vector<uint8_t>> fb_array;
 	//--------------------------------------------------------------------------------------------------------------------------------
 	// Pointers to the original hooked functions
 	static D3D11PresentHook hookedD3D11Present = nullptr;
@@ -103,10 +106,17 @@ namespace IGCS::DX11Hooker
 
 					_initializeDeviceAndContext = false;
 				}
-				if (doTakeScreenshot)
+				if (framesToGrab > 0)
 				{
-					screenshotProcess(pSwapChain);
-					doTakeScreenshot = false;
+					OverlayConsole::instance().logDebug("hook frames remaining: %d, sync: %d", framesToGrab, framesToGrabSync);
+					if (framesToGrab >= framesToGrabSync) {
+						fb_array.push_back(capture_frame(pSwapChain));
+						--framesToGrab;
+						if (framesToGrab == 0)
+						{
+							std::thread(saveAllFiles).detach();
+						}
+					}
 				}
 				// render our own stuff
 				_context->OMSetRenderTargets(1, &_mainRenderTargetView, NULL);
@@ -120,7 +130,11 @@ namespace IGCS::DX11Hooker
 		_presentInProgress = false;
 		return toReturn;
 	}
+	void syncFramesToGrab(int ftgs)
+	{
 
+		framesToGrabSync = ftgs;
+	}
 	void initializeHook()
 	{
 		_tmpSwapChainInitialized = false;
@@ -216,8 +230,12 @@ namespace IGCS::DX11Hooker
 		io.IniFilename = IGCS_OVERLAY_INI_FILENAME;
 		initImGuiStyle();
 	}
-	void capture_frame(uint8_t *buffer, IDXGISwapChain* pSwapChain)
+	std::vector<uint8_t> capture_frame(IDXGISwapChain * pSwapChain)
 	{
+		OverlayConsole::instance().logLine("capture_frame()");
+
+		std::vector<uint8_t> fbdata(_width * _height * 4);
+		uint8_t * buffer = fbdata.data();
 		D3D11_TEXTURE2D_DESC StagingDesc;
 		ID3D11Texture2D *pBackBuffer = NULL;
 		pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
@@ -234,7 +252,7 @@ namespace IGCS::DX11Hooker
 		{
 			IGCS::Console::WriteError("Failed to map staging resource with screenshot capture! HRESULT is");
 			std::cout << "Failed to map staging resource with screenshot capture! HRESULT is '" << std::hex << hr << std::dec << "'.";
-			return;
+			return fbdata;
 		}
 		auto mapped_data = static_cast<BYTE *>(mapped.pData);
 		const UINT pitch = StagingDesc.Width * 4;
@@ -255,38 +273,51 @@ namespace IGCS::DX11Hooker
 			mapped_data += mapped.RowPitch;
 		}
 		_context->Unmap(pBackBufferStaging, 0);
+		return fbdata;
 	}
 
-	void takeScreenshot(char* filename)
+	void takeScreenshot(char* filename, int framesToGrab_=1)
 	{
+		_isDoneSavingImages = false;
+		framesToGrab = framesToGrab_;
 		strcpy(_filename, filename);
-		OverlayConsole::instance().logDebug("takeScreenshot() %s", _filename);
-		doTakeScreenshot = true;
 	}
-	void screenshotProcess(IDXGISwapChain* pSwapChain)
+	int framesRemaining()
 	{
-		std::vector<uint8_t> data(_width * _height * 4);
-		capture_frame(data.data(), pSwapChain);
-		bool _screenshot_save_success =  false; // Default to a save failure unless it is reported to succeed below
-		if (FILE *file; fopen_s(&file, _filename, "wb") == 0)
-		{
-			const auto write_callback = [](void *context, void *data, int size) {
-				fwrite(data, 1, size, static_cast<FILE *>(context));
-			};
-			_screenshot_save_success = stbi_write_png_to_func(write_callback, file, _width, _height, 4, data.data(), 0) != 0;
-
-			fclose(file);
+		return framesToGrab;
+	}
+	bool isDoneSavingImages()
+	{
+		return _isDoneSavingImages;
+	}
+	void saveAllFiles()
+	{
+		int i = 0;
+		for (std::vector<uint8_t> d : fb_array) {
+			saveToFile(d, _filename, i);
+			++i;
 		}
+		fb_array.clear();
+		_isDoneSavingImages = true;
+		OverlayConsole::instance().logLine("All files saved out to %s", _filename);
+		return;
+	}
 
+	void saveToFile(std::vector<uint8_t> data, char * dirname, int framenum=0)
+	{
+		char filename[500];
+		sprintf(filename, "%s\\%d.jpg", dirname, framenum);
+		bool _screenshot_save_success = false; // Default to a save failure unless it is reported to succeed below
+		_screenshot_save_success = stbi_write_jpg(filename, _width, _height, 4, data.data(), 70) != 0;
 		if (!_screenshot_save_success)
 		{
-			OverlayConsole::instance().logDebug("Failed to write screenshot of dimensions %dx%d to... %s", _width, _height, _filename);
-			//std::cout << "Failed to write screenshot to " << screenshot_path.c_str() << '!' << std::endl;
+			OverlayConsole::instance().logDebug("Failed to write screenshot of dimensions %dx%d to... %s", _width, _height, filename);
 		}
 		else {
-			OverlayConsole::instance().logDebug("Successfully wrote screenshot of dimensions %dx%d to... %s", _width, _height, _filename);
+			OverlayConsole::instance().logDebug("Successfully wrote screenshot of dimensions %dx%d to... %s", _width, _height, filename);
 		}
 	}
+
 	void initImGuiStyle()
 	{
 		ImGuiStyle& style = ImGui::GetStyle();

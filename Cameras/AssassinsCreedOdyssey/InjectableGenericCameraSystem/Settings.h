@@ -53,7 +53,7 @@ namespace IGCS
 			rotationSpeed = Utils::clamp(iniFile.GetFloat("rotationSpeed", "CameraSettings"), 0.0f, DEFAULT_ROTATION_SPEED);
 			fovChangeSpeed = Utils::clamp(iniFile.GetFloat("fovChangeSpeed", "CameraSettings"), 0.0f, DEFAULT_FOV_SPEED);
 			cameraControlDevice = Utils::clamp(iniFile.GetInt("cameraControlDevice", "CameraSettings"), 0, DEVICE_ID_ALL, DEVICE_ID_ALL);
-			lkgViewDistance = Utils::clamp(iniFile.GetFloat("lkgViewDistance", "CameraSettings"), 0.0f, 1.0f);
+			lkgViewDistance = Utils::clamp(iniFile.GetFloat("lkgViewDistance", "CameraSettings"), 0.0f, 100.0f);
 			lkgViewCount = Utils::clamp(iniFile.GetInt("lkgViewCount", "CameraSettings"), 0, 45);
 			std::string sds = iniFile.GetValue("screenshotDirectory","CameraSettings");
 			std::copy(sds.begin(), sds.end(), screenshotDirectory);

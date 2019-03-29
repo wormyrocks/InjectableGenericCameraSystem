@@ -57,8 +57,8 @@ namespace IGCS
 		void toggleTimestopState();
 		void toggleHudRenderState();
 		void takeLightfieldPhoto();
-		bool captureFrame();
 		void singleScreenshot();
+		void startCapture(int numViews);
 		void moveLightfield(int direction, bool end);
 		void moveLightfield(int direction, bool end, bool log);
 
@@ -71,8 +71,9 @@ namespace IGCS
 		bool _cameraMovementLocked = false;
 		bool _cameraStructFound = false;
 		bool _hudToggled = false;
-		int _currentView = 0;
+		int framesToGrab = 0;
 		bool _isLightfieldCapturing = false;
+		bool _lightfieldHookInited = false;
 		int _screenshot_ts[4] = {};
 		map<string, AOBBlock*> _aobBlocks;
 		bool _applyHammerPrevention = false;	// set to true by a keyboard action and which triggers a sleep before keyboard handling is performed.
