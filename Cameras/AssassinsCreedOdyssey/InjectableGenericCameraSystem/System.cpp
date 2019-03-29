@@ -41,6 +41,7 @@
 #include "OverlayControl.h"
 #include "MinHook.h"
 #include <time.h>
+#include <direct.h>
 
 namespace IGCS
 {
@@ -116,7 +117,10 @@ namespace IGCS
 			// sleep main thread for 200ms so key repeat delay is simulated. 
 			Sleep(200);
 		}
-
+		if (Globals::instance().gamePad().isButtonPressed(IGCS_BUTTON_SINGLE_SCREENSHOT))
+		{
+			singleScreenshot();
+		}
 		if (Input::isActionActivated(ActionType::ToggleOverlay))
 		{
 			OverlayControl::toggleOverlay();
@@ -203,17 +207,17 @@ namespace IGCS
 		if (Input::isActionActivated(ActionType::LightfieldPhoto))
 		{
 			takeLightfieldPhoto();
-			Sleep(200);				// wait for 200ms to avoid fast keyboard hammering
+			_applyHammerPrevention = true;
 		}
 		else if (Input::isActionActivated(ActionType::LightfieldLeft,true))
 		{
 			moveLightfield(-1, altPressed);
-			Sleep(200);				// wait for 200ms to avoid fast keyboard hammering
+			_applyHammerPrevention = true;
 		}
 		else if (Input::isActionActivated(ActionType::LightfieldRight,true))
 		{
 			moveLightfield(1, altPressed);
-			Sleep(200);				// wait for 200ms to avoid fast keyboard hammering
+			_applyHammerPrevention = true;
 		}
 		if (_cameraMovementLocked)
 		{
@@ -446,6 +450,24 @@ namespace IGCS
 			moveLightfield(-1, true, false);
 		}
 	}
+	void System::singleScreenshot()
+	{
+		time_t t = time(nullptr);
+		tm tm;
+		localtime_s(&tm, &t);
+		_screenshot_ts[0] = tm.tm_year + 1900;
+		_screenshot_ts[1] = tm.tm_mon + 1;
+		_screenshot_ts[2] = tm.tm_mday;
+		_screenshot_ts[3] = tm.tm_hour * 3600 + tm.tm_min * 60 + tm.tm_sec;
+		const int hour = _screenshot_ts[3] / 3600;
+		const int minute = (_screenshot_ts[3] - hour * 3600) / 60;
+		const int seconds = _screenshot_ts[3] - hour * 3600 - minute * 60;
+		char filename[500];
+		int cx;
+		cx = sprintf(filename, "%s\\%.4d-%.2d-%.2d-%.2d-%.2d-%.2d-%d.png", Globals::instance().settings().screenshotDirectory,_screenshot_ts[0], _screenshot_ts[1], _screenshot_ts[2], hour, minute, seconds, _currentView);
+		OverlayConsole::instance().logDebug("singleScreenshot() %s", filename);
+		DX11Hooker::takeScreenshot(filename);
+	}
 	bool System::captureFrame()
 	{
 		if (_currentView >= Globals::instance().settings().lkgViewCount) {
@@ -460,10 +482,8 @@ namespace IGCS
 		const int hour = _screenshot_ts[3] / 3600;
 		const int minute = (_screenshot_ts[3] - hour * 3600) / 60;
 		const int seconds = _screenshot_ts[3] - hour * 3600 - minute * 60;
-
-		char filename[100];
 		int cx;
-		cx = sprintf(filename, "C:\\Users\\theka\\Desktop\\aco_screenshots\\%.4d-%.2d-%.2d %.2d-%.2d-%.2d-%d.png", _screenshot_ts[0], _screenshot_ts[1], _screenshot_ts[2], hour, minute, seconds, _currentView);
+		cx = sprintf(filename, "%s\\%.4d-%.2d-%.2d-%.2d-%.2d-%.2d-%d.png", Globals::instance().settings().screenshotDirectory, _screenshot_ts[0], _screenshot_ts[1], _screenshot_ts[2], hour, minute, seconds, _currentView);
 
 		OverlayConsole::instance().logDebug("Saving screenshot to... %s", filename);
 

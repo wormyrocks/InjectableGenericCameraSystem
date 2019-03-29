@@ -7,6 +7,7 @@
 #include "Defaults.h"
 #include <map>
 #include "ActionData.h"
+#include "Console.h"
 
 namespace IGCS
 {
@@ -25,7 +26,7 @@ namespace IGCS
 		bool disableInGameDofWhenCameraIsEnabled;
 		float lkgViewDistance;
 		int lkgViewCount;
-
+		char screenshotDirectory[500];
 		// settings not persisted to config file.
 		// add settings to edit here.
 		float resolutionScale;			// 0.5-4.0
@@ -54,7 +55,9 @@ namespace IGCS
 			cameraControlDevice = Utils::clamp(iniFile.GetInt("cameraControlDevice", "CameraSettings"), 0, DEVICE_ID_ALL, DEVICE_ID_ALL);
 			lkgViewDistance = Utils::clamp(iniFile.GetFloat("lkgViewDistance", "CameraSettings"), 0.0f, 1.0f);
 			lkgViewCount = Utils::clamp(iniFile.GetInt("lkgViewCount", "CameraSettings"), 0, 45);
-
+			std::string sds = iniFile.GetValue("screenshotDirectory","CameraSettings");
+			std::copy(sds.begin(), sds.end(), screenshotDirectory);
+			screenshotDirectory[sds.size()] = '\0';
 			// load keybindings. They might not be there, or incomplete. 
 			for (std::pair<ActionType, ActionData*> kvp : keyBindingPerActionType)
 			{
@@ -84,6 +87,7 @@ namespace IGCS
 			iniFile.SetInt("cameraControlDevice", cameraControlDevice, "", "CameraSettings");
 			iniFile.SetFloat("lkgViewDistance", lkgViewDistance, "", "CameraSettings");
 			iniFile.SetInt("lkgViewCount", lkgViewCount, "", "CameraSettings");
+			iniFile.SetValue("screenshotDirectory", screenshotDirectory, "", "CameraSettings");
 
 			// save keybindings
 			if (!keyBindingPerActionType.empty())
@@ -96,7 +100,6 @@ namespace IGCS
 				}
 				iniFile.SetSectionComment("KeyBindings", "Values are 4-byte ints: A|B|C|D, where A is byte for VT keycode, B, C and D are bools if resp. Alt, Ctrl or Shift is required");
 			}
-
 			iniFile.SetFileName(IGCS_SETTINGS_INI_FILENAME);
 			iniFile.Save();
 		}
@@ -116,7 +119,7 @@ namespace IGCS
 			disableInGameDofWhenCameraIsEnabled = false;
 			lkgViewDistance = 1.0f;
 			lkgViewCount = 45;
-
+			
 			if (!persistedOnly)
 			{
 				resolutionScale = 1.0f;

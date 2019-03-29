@@ -58,9 +58,11 @@ namespace IGCS
 		void toggleHudRenderState();
 		void takeLightfieldPhoto();
 		bool captureFrame();
+		void singleScreenshot();
 		void moveLightfield(int direction, bool end);
 		void moveLightfield(int direction, bool end, bool log);
 
+		char filename[500];
 
 		Camera _camera;
 		LPBYTE _hostImageAddress;

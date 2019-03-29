@@ -57,6 +57,7 @@ namespace IGCS
 		LightfieldLeft,
 		LightfieldRight,
 		Amount,
+		SingleScreenshot
 	};
 
 

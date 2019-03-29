@@ -15,7 +15,6 @@
 #include <filesystem>
 #include "stb_image.h"
 #include "com_ptr.hpp"
-//#include "stb_image_dds.h"
 #include "stb_image_write.h"
 #include "stb_image_resize.h"
 
@@ -41,12 +40,11 @@ namespace IGCS::DX11Hooker
 	static ID3D11Device* _device = nullptr;
 	static ID3D11DeviceContext* _context = nullptr;
 	static ID3D11RenderTargetView* _mainRenderTargetView = nullptr;
-	IDXGISwapChain* pSwapChain;
-	ID3D11Texture2D* pBackBuffer;
 	UINT _width;
 	UINT _height;
-	DXGI_FORMAT _backbuffer_format;
-
+	char _filename[500];
+	bool doTakeScreenshot;
+	
 	//--------------------------------------------------------------------------------------------------------------------------------
 	// Pointers to the original hooked functions
 	static D3D11PresentHook hookedD3D11Present = nullptr;
@@ -105,6 +103,11 @@ namespace IGCS::DX11Hooker
 
 					_initializeDeviceAndContext = false;
 				}
+				if (doTakeScreenshot)
+				{
+					screenshotProcess(pSwapChain);
+					doTakeScreenshot = false;
+				}
 				// render our own stuff
 				_context->OMSetRenderTargets(1, &_mainRenderTargetView, NULL);
 				OverlayControl::renderOverlay();
@@ -133,10 +136,6 @@ namespace IGCS::DX11Hooker
 		swapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 		swapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-		_width = swapChainDesc.BufferDesc.Width;
-		_height = swapChainDesc.BufferDesc.Height;
-		_backbuffer_format = swapChainDesc.BufferDesc.Format;
-
 		ID3D11Device *pTmpDevice = NULL;
 		ID3D11DeviceContext *pTmpContext = NULL;
 		IDXGISwapChain* pTmpSwapChain;
@@ -174,13 +173,10 @@ namespace IGCS::DX11Hooker
 		{
 			IGCS::Console::WriteError("Enabling of ResizeBuffers hook failed!");
 		}
-
 		pTmpDevice->Release();
 		pTmpContext->Release();
 		pTmpSwapChain->Release();
 		_tmpSwapChainInitialized = true;
-
-		OverlayConsole::instance().logDebug("DX11 hooks set");
 	}
 
 
@@ -188,12 +184,17 @@ namespace IGCS::DX11Hooker
 	{
 		DXGI_SWAP_CHAIN_DESC sd;
 		pSwapChain->GetDesc(&sd);
+		ID3D11Texture2D* pBackBuffer;
 		D3D11_RENDER_TARGET_VIEW_DESC render_target_view_desc;
 		ZeroMemory(&render_target_view_desc, sizeof(render_target_view_desc));
 		render_target_view_desc.Format = sd.BufferDesc.Format;
 		render_target_view_desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 		pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
 		_device->CreateRenderTargetView(pBackBuffer, &render_target_view_desc, &_mainRenderTargetView);
+		D3D11_TEXTURE2D_DESC StagingDesc;
+		pBackBuffer->GetDesc(&StagingDesc);
+		_width = StagingDesc.Width;
+		_height = StagingDesc.Height;
 		pBackBuffer->Release();
 	}
 
@@ -215,115 +216,28 @@ namespace IGCS::DX11Hooker
 		io.IniFilename = IGCS_OVERLAY_INI_FILENAME;
 		initImGuiStyle();
 	}
-
-	void capture_frame_(uint8_t *buffer)
+	void capture_frame(uint8_t *buffer, IDXGISwapChain* pSwapChain)
 	{
-		if (_backbuffer_format != DXGI_FORMAT_R8G8B8A8_UNORM &&
-			_backbuffer_format != DXGI_FORMAT_R8G8B8A8_UNORM_SRGB &&
-			_backbuffer_format != DXGI_FORMAT_B8G8R8A8_UNORM &&
-			_backbuffer_format != DXGI_FORMAT_B8G8R8A8_UNORM_SRGB)
-		{
-			return;
-		}
-
-		D3D11_TEXTURE2D_DESC texture_desc = {};
-		texture_desc.Width = _width;
-		texture_desc.Height = _height;
-		texture_desc.ArraySize = 1;
-		texture_desc.MipLevels = 1;
-		texture_desc.Format = _backbuffer_format;
-		texture_desc.SampleDesc.Count = 1;
-		texture_desc.Usage = D3D11_USAGE_STAGING;
-		texture_desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-
-		com_ptr<ID3D11Texture2D> texture_staging;
-
-		HRESULT hr = _device->CreateTexture2D(&texture_desc, nullptr, &texture_staging);
-
-		if (FAILED(hr))
-		{
-			std::cout << "Failed to create staging resource for screenshot capture! HRESULT is '" << std::hex << hr << std::dec << "'.";
-			return;
-		}
-
-		_context->CopyResource(texture_staging.get(), pBackBuffer);
-
-		D3D11_MAPPED_SUBRESOURCE mapped;
-		hr = _context->Map(texture_staging.get(), 0, D3D11_MAP_READ, 0, &mapped);
-
-		if (FAILED(hr))
-		{
-			std::cout << "Failed to map staging resource with screenshot capture! HRESULT is '" << std::hex << hr << std::dec << "'.";
-			return;
-		}
-
-		auto mapped_data = static_cast<BYTE *>(mapped.pData);
-		const UINT pitch = texture_desc.Width * 4;
-
-		for (UINT y = 0; y < texture_desc.Height; y++)
-		{
-			CopyMemory(buffer, mapped_data, min(pitch, static_cast<UINT>(mapped.RowPitch)));
-
-			for (UINT x = 0; x < pitch; x += 4)
-			{
-				buffer[x + 3] = 0xFF;
-
-				if (texture_desc.Format == DXGI_FORMAT_B8G8R8A8_UNORM || texture_desc.Format == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB)
-				{
-					std::swap(buffer[x + 0], buffer[x + 2]);
-				}
-			}
-
-			buffer += pitch;
-			mapped_data += mapped.RowPitch;
-		}
-
-		_context->Unmap(texture_staging.get(), 0);
-	}
-
-	void capture_frame(uint8_t *buffer)
-	{		
 		D3D11_TEXTURE2D_DESC StagingDesc;
+		ID3D11Texture2D *pBackBuffer = NULL;
 		pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
 		pBackBuffer->GetDesc(&StagingDesc);
 		StagingDesc.Usage = D3D11_USAGE_STAGING;
 		StagingDesc.BindFlags = 0;
-		StagingDesc.Width = _width;
-		StagingDesc.Height = _height;
-
-		StagingDesc.ArraySize = 1;
-		StagingDesc.MipLevels = 1;
-		StagingDesc.Format = _backbuffer_format;
-		StagingDesc.SampleDesc.Count = 1;
-		StagingDesc.Usage = D3D11_USAGE_STAGING;
 		StagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-
 		ID3D11Texture2D *pBackBufferStaging = NULL;
 		HRESULT hr = _device->CreateTexture2D(&StagingDesc, NULL, &pBackBufferStaging);
-
-		if (FAILED(hr))
-		{
-			OverlayConsole::instance().logDebug("Failed to create staging resource for screenshot capture!");
-
-			//std::cout << "Failed to create staging resource for screenshot capture! HRESULT is '" << std::hex << hr << std::dec << "'." << std::endl;
-			return;
-		}
-
 		_context->CopyResource(pBackBufferStaging, pBackBuffer);
 		D3D11_MAPPED_SUBRESOURCE mapped;
 		hr = _context->Map(pBackBufferStaging, 0, D3D11_MAP_READ, 0, &mapped);
-
 		if (FAILED(hr))
 		{
-			OverlayConsole::instance().logDebug("Failed to map staging resource for screenshot capture!");
-
-			//std::cout << "Failed to map staging resource with screenshot capture! HRESULT is '" << std::hex << hr << std::dec << "'." << std::endl;
+			IGCS::Console::WriteError("Failed to map staging resource with screenshot capture! HRESULT is");
+			std::cout << "Failed to map staging resource with screenshot capture! HRESULT is '" << std::hex << hr << std::dec << "'.";
 			return;
 		}
-
 		auto mapped_data = static_cast<BYTE *>(mapped.pData);
 		const UINT pitch = StagingDesc.Width * 4;
-
 		for (UINT y = 0; y < StagingDesc.Height; y++)
 		{
 			memcpy(buffer, mapped_data, min(pitch, static_cast<UINT>(mapped.RowPitch)));
@@ -340,18 +254,21 @@ namespace IGCS::DX11Hooker
 			buffer += pitch;
 			mapped_data += mapped.RowPitch;
 		}
-
 		_context->Unmap(pBackBufferStaging, 0);
 	}
+
 	void takeScreenshot(char* filename)
 	{
+		strcpy(_filename, filename);
+		OverlayConsole::instance().logDebug("takeScreenshot() %s", _filename);
+		doTakeScreenshot = true;
+	}
+	void screenshotProcess(IDXGISwapChain* pSwapChain)
+	{
 		std::vector<uint8_t> data(_width * _height * 4);
-		capture_frame_(data.data());
-		
-		std::cout << "Saving screenshot to " << filename << " ..." << std::endl;
-		bool _screenshot_save_success = false; // Default to a save failure unless it is reported to succeed below
-
-		if (FILE *file; fopen_s(&file, filename, "wb") == 0)
+		capture_frame(data.data(), pSwapChain);
+		bool _screenshot_save_success =  false; // Default to a save failure unless it is reported to succeed below
+		if (FILE *file; fopen_s(&file, _filename, "wb") == 0)
 		{
 			const auto write_callback = [](void *context, void *data, int size) {
 				fwrite(data, 1, size, static_cast<FILE *>(context));
@@ -363,11 +280,11 @@ namespace IGCS::DX11Hooker
 
 		if (!_screenshot_save_success)
 		{
-			OverlayConsole::instance().logDebug("Failed to write screenshot of dimensions %dx%d to... %s", _width, _height, filename);
+			OverlayConsole::instance().logDebug("Failed to write screenshot of dimensions %dx%d to... %s", _width, _height, _filename);
 			//std::cout << "Failed to write screenshot to " << screenshot_path.c_str() << '!' << std::endl;
 		}
 		else {
-			OverlayConsole::instance().logDebug("Successfully wrote screenshot of dimensions %dx%d to... %s", _width, _height, filename);
+			OverlayConsole::instance().logDebug("Successfully wrote screenshot of dimensions %dx%d to... %s", _width, _height, _filename);
 		}
 	}
 	void initImGuiStyle()
