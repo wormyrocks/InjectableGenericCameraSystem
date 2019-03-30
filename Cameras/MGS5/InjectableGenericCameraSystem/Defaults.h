@@ -63,6 +63,9 @@ namespace IGCS
 	//#define IGCS_KEY_DECREASE_HOTSAMPLE_FACTOR		VK_OEM_4		// [{
 	//#define IGCS_KEY_INCREASE_HOTSAMPLE_FACTOR		VK_OEM_6		// ]}
 	//#define IGCS_KEY_HOTSAMPLE_ENABLE				VK_DELETE
+	#define IGCS_KEY_LIGHTFIELD_PHOTO				VK_END
+	#define IGCS_KEY_LIGHTFIELD_LEFT				VK_PRIOR
+	#define IGCS_KEY_LIGHTFIELD_RIGHT				VK_NEXT
 
 	#define IGCS_BUTTON_FOV_DECREASE	Gamepad::button_t::UP
 	#define IGCS_BUTTON_FOV_INCREASE	Gamepad::button_t::DOWN
@@ -72,7 +75,7 @@ namespace IGCS
 	#define IGCS_BUTTON_FASTER			Gamepad::button_t::Y
 	#define IGCS_BUTTON_SLOWER			Gamepad::button_t::X
 
-	static const byte jmpFarInstructionBytes[6] = { 0xff, 0x25, 0, 0, 0, 0 };	// instruction bytes for jmp qword ptr [0000]
+	static const BYTE jmpFarInstructionBytes[6] = { 0xff, 0x25, 0, 0, 0, 0 };	// instruction bytes for jmp qword ptr [0000]
 
 	#define DEVICE_ID_KEYBOARD_MOUSE			0
 	#define DEVICE_ID_GAMEPAD					1

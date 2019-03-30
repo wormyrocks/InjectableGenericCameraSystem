@@ -40,7 +40,7 @@ static ID3D11BlendState*        g_pBlendState = NULL;
 static ID3D11DepthStencilState* g_pDepthStencilState = NULL;
 static int                      g_VertexBufferSize = 5000, g_IndexBufferSize = 10000;
 
-static byte						g_keyStates[256];		// 0x0==nothing, 0x88==key is down this frame, 0x08==key is released, 0x80==key was down previous frame.
+static BYTE						g_keyStates[256];		// 0x0==nothing, 0x88==key is down this frame, 0x08==key is released, 0x80==key was down previous frame.
 static std::mutex               g_keyStateMutex;
 
 struct VERTEX_CONSTANT_BUFFER

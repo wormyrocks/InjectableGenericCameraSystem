@@ -39,6 +39,8 @@
 #include "GameImageHooker.h"
 #include "UniversalD3D11Hook.h"
 #include "OverlayConsole.h"
+#include "direct.h"
+#include "time.h"
 #include "OverlayControl.h"
 
 namespace IGCS
@@ -152,7 +154,7 @@ namespace IGCS
 				CameraManipulator::cacheOriginalValuesBeforeCameraEnable();
 				_camera.resetAngles();
 			}
-			g_cameraEnabled = g_cameraEnabled == 0 ? (byte)1 : (byte)0;
+			g_cameraEnabled = g_cameraEnabled == 0 ? (BYTE)1 : (BYTE)0;
 			displayCameraState();
 			Sleep(350);				// wait for 350ms to avoid fast keyboard hammering
 		}
@@ -181,11 +183,51 @@ namespace IGCS
 		}
 
 		_camera.resetMovement();
+
+		if (_isLightfieldCapturing)
+		{
+			if (framesToGrab == 0) {
+				_isLightfieldCapturing = false;
+				moveLightfield(-1, true, false);
+				OverlayConsole::instance().logLine("Lightfield photo end.");
+				//InterceptorHelper::toggleHudRenderState(_aobBlocks, _hudToggled);
+			}
+			else {
+				// synchronize camera position with lightfield capture
+				if (!_lightfieldHookInited) {
+					OverlayConsole::instance().logLine("Lightfield photo begin.");
+					startCapture(framesToGrab);
+					_lightfieldHookInited = true;
+				}
+				else if (framesToGrab >= DX11Hooker::framesRemaining()) {
+					--framesToGrab;
+					moveLightfield(1, false, false);
+					return;
+				}
+				DX11Hooker::syncFramesToGrab(framesToGrab);
+			}
+		}
+
 		Settings& settings = Globals::instance().settings();
 		float multiplier = altPressed ? settings.fastMovementMultiplier : rcontrolPressed ? settings.slowMovementMultiplier : 1.0f;
 		if (Input::keyDown(IGCS_KEY_CAMERA_LOCK))
 		{
 			toggleCameraMovementLockState(!_cameraMovementLocked);
+			Sleep(350);				// wait for 350ms to avoid fast keyboard hammering
+		}
+
+		if (Input::keyDown(IGCS_KEY_LIGHTFIELD_PHOTO))
+		{
+			takeLightfieldPhoto();
+		}
+		else if (Input::keyDown(IGCS_KEY_LIGHTFIELD_LEFT))
+		{
+			moveLightfield(-1, altPressed);
+			Sleep(350);				// wait for 350ms to avoid fast keyboard hammering
+		}
+		else if (Input::keyDown(IGCS_KEY_LIGHTFIELD_RIGHT))
+		{
+			moveLightfield(1, altPressed);
 			Sleep(350);				// wait for 350ms to avoid fast keyboard hammering
 		}
 		if (_cameraMovementLocked)
@@ -375,14 +417,89 @@ namespace IGCS
 		OverlayControl::addNotification(g_cameraEnabled ? "Camera enabled" : "Camera disabled");
 	}
 
-
 	// Freezes the game by using the menu timestop.
-	void System::freezeGame()
+	void System::freezeGame(bool freeze)
 	{
-		bool gamePaused = CameraManipulator::setTimeStopValue(true);
+		bool gamePaused = CameraManipulator::setTimeStopValue(freeze);
 		if (gamePaused)
 		{
 			OverlayControl::addNotification("Game paused. Unpause with the menu by pressing ESC twice.");
 		}
+		gameFrozen = gamePaused;
+	}
+	void System::freezeGame() { System::freezeGame(true); }
+	int direxists(const char* path) {
+		struct stat info;
+		if (stat(path, &info) != 0)
+			return 0;
+		else if (info.st_mode & S_IFDIR)
+			return 1;
+		else
+			return 0;
+	}
+	void System::takeLightfieldPhoto()
+	{
+		if (!direxists(Globals::instance().settings().screenshotDirectory))
+		{
+			OverlayConsole::instance().logError("Screenshot target directory does not exist!");
+			return;
+		}
+		if (_isLightfieldCapturing || !DX11Hooker::isDoneSavingImages()) {
+			OverlayConsole::instance().logError("Previous capture not complete!");
+			return;
+		}
+		//InterceptorHelper::toggleHudRenderState(_aobBlocks, true);
+		//CameraManipulator::setTimeStopValue(true);
+		moveLightfield(-1, true, false);
+		_lightfieldHookInited = false;
+		framesToGrab = Globals::instance().settings().lkgViewCount;
+		_isLightfieldCapturing = true;
+	}
+	void System::startCapture(int numViews = 1)
+	{
+		OverlayConsole::instance().logLine("Time stopped.");
+		time_t t = time(nullptr);
+		tm tm;
+		localtime_s(&tm, &t);
+		_screenshot_ts[0] = tm.tm_year + 1900;
+		_screenshot_ts[1] = tm.tm_mon + 1;
+		_screenshot_ts[2] = tm.tm_mday;
+		_screenshot_ts[3] = tm.tm_hour * 3600 + tm.tm_min * 60 + tm.tm_sec;
+		const int hour = _screenshot_ts[3] / 3600;
+		const int minute = (_screenshot_ts[3] - hour * 3600) / 60;
+		const int seconds = _screenshot_ts[3] - hour * 3600 - minute * 60;
+		char buf[500];
+		char* optional_backslash = "";
+		char* screenshot_dir = Globals::instance().settings().screenshotDirectory;
+		if (screenshot_dir[strlen(screenshot_dir) - 1] != '\\') {
+			optional_backslash = "\\";
+		}
+		sprintf(buf, "%s%s%.4d-%.2d-%.2d-%.2d-%.2d-%.2d", screenshot_dir, optional_backslash, _screenshot_ts[0], _screenshot_ts[1], _screenshot_ts[2], hour, minute, seconds);
+		mkdir(buf);
+		DX11Hooker::takeScreenshot(buf, numViews);
+	}
+	void System::moveLightfield(int direction, bool end)
+	{
+		moveLightfield(direction, end, true);
+	}
+	void System::moveLightfield(int direction, bool end, bool log)
+	{
+		OverlayControl::addNotification("moveLightfield called");
+		log = !log;
+		if (end) {
+			if (log) {
+				//OverlayConsole::instance().logLine((direction > 0) ? "Move to end." : "Move to start.");
+				OverlayControl::addNotification((direction > 0) ? "Move to end." : "Move to start.");
+			}
+			float dist = direction * 0.5f*(Globals::instance().settings().lkgViewDistance)*(Globals::instance().settings().lkgViewCount);
+			_camera.moveRight(dist);
+			return;
+		}
+		if (log) {
+			//OverlayConsole::instance().logLine((direction > 0) ? "Move to next." : "Move to previous.");
+			OverlayControl::addNotification((direction > 0) ? "Move to next." : "Move to previous.");
+		}
+		float dist = direction * (Globals::instance().settings().lkgViewDistance);
+		_camera.moveRight(dist);
 	}
 }

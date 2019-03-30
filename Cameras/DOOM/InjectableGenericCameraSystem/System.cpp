@@ -132,7 +132,7 @@ namespace IGCS
 				CameraManipulator::cacheOriginalCameraValues();
 				_camera.resetAngles();
 			}
-			g_cameraEnabled = g_cameraEnabled == 0 ? (byte)1 : (byte)0;
+			g_cameraEnabled = g_cameraEnabled == 0 ? (BYTE)1 : (BYTE)0;
 			displayCameraState();
 			Sleep(350);				// wait for 350ms to avoid fast keyboard hammering
 		}
@@ -336,7 +336,7 @@ namespace IGCS
 
 	void System::toggleTimestopState()
 	{
-		_timeStopped = _timeStopped == 0 ? (byte)1 : (byte)0;
+		_timeStopped = _timeStopped == 0 ? (BYTE)1 : (BYTE)0;
 		Console::WriteLine(_timeStopped ? "Game paused" : "Game unpaused");
 		CameraManipulator::setTimeStopValue(_hostImageAddress, _timeStopped);
 	}
@@ -354,6 +354,79 @@ namespace IGCS
 		Console::WriteLine(_camera.lookDirectionInverter() < 0 ? "Y look direction is inverted" : "Y look direction is normal");
 	}
 
+	int direxists(const char* path) {
+		struct stat info;
+		if (stat(path, &info) != 0)
+			return 0;
+		else if (info.st_mode & S_IFDIR)
+			return 1;
+		else
+			return 0;
+	}
+	void System::takeLightfieldPhoto()
+	{
+		if (!direxists("C:\\Users\\theka\\Desktop\\doom_screenshots"))
+		{
+			return;
+		}
+		if (_isLightfieldCapturing || !DX11Hooker::isDoneSavingImages()) {
+			OverlayConsole::instance().logError("Previous capture not complete!");
+			return;
+		}
+		InterceptorHelper::toggleHudRenderState(_aobBlocks, true);
+		CameraManipulator::setTimeStopValue(true);
+		moveLightfield(-1, true, false);
+		_lightfieldHookInited = false;
+		framesToGrab = Globals::instance().settings().lkgViewCount;
+		_isLightfieldCapturing = true;
+	}
+	void System::startCapture(int numViews = 1)
+	{
+		OverlayConsole::instance().logLine("Time stopped.");
+		time_t t = time(nullptr);
+		tm tm;
+		localtime_s(&tm, &t);
+		_screenshot_ts[0] = tm.tm_year + 1900;
+		_screenshot_ts[1] = tm.tm_mon + 1;
+		_screenshot_ts[2] = tm.tm_mday;
+		_screenshot_ts[3] = tm.tm_hour * 3600 + tm.tm_min * 60 + tm.tm_sec;
+		const int hour = _screenshot_ts[3] / 3600;
+		const int minute = (_screenshot_ts[3] - hour * 3600) / 60;
+		const int seconds = _screenshot_ts[3] - hour * 3600 - minute * 60;
+		char buf[500];
+		char* optional_backslash = "";
+		char* screenshot_dir = Globals::instance().settings().screenshotDirectory;
+		if (screenshot_dir[strlen(screenshot_dir) - 1] != '\\') {
+			optional_backslash = "\\";
+		}
+		sprintf(buf, "%s%s%.4d-%.2d-%.2d-%.2d-%.2d-%.2d", screenshot_dir, optional_backslash, _screenshot_ts[0], _screenshot_ts[1], _screenshot_ts[2], hour, minute, seconds);
+		mkdir(buf);
+		DX11Hooker::takeScreenshot(buf, numViews);
+	}
+	void System::moveLightfield(int direction, bool end)
+	{
+		moveLightfield(direction, end, true);
+	}
+	void System::moveLightfield(int direction, bool end, bool log)
+	{
+		OverlayControl::addNotification("moveLightfield called");
+		log = !log;
+		if (end) {
+			if (log) {
+				//OverlayConsole::instance().logLine((direction > 0) ? "Move to end." : "Move to start.");
+				OverlayControl::addNotification((direction > 0) ? "Move to end." : "Move to start.");
+			}
+			float dist = direction * 0.5f*(Globals::instance().settings().lkgViewDistance)*(Globals::instance().settings().lkgViewCount);
+			_camera.moveRight(dist);
+			return;
+		}
+		if (log) {
+			//OverlayConsole::instance().logLine((direction > 0) ? "Move to next." : "Move to previous.");
+			OverlayControl::addNotification((direction > 0) ? "Move to next." : "Move to previous.");
+		}
+		float dist = direction * (Globals::instance().settings().lkgViewDistance);
+		_camera.moveRight(dist);
+	}
 
 	void System::displayHelp()
 	{

@@ -63,10 +63,10 @@ namespace IGCS
 	}
 	
 
-	// Creates an aob_pattern struct which is usable with an aob scan. The pattern given is in the form of "aa bb ??" where '??' is a byte
+	// Creates an aob_pattern struct which is usable with an aob scan. The pattern given is in the form of "aa bb ??" where '??' is a BYTE
 	// which has to be skipped in the comparison, and 'aa' and 'bb' are hexadecimal bytes which have to have that value at that position.
-	// If a '|' is specified in the pattern, the position of the byte following it is the start offset returned by the aob scanner, instead of
-	// the position of the first byte of the pattern. 
+	// If a '|' is specified in the pattern, the position of the BYTE following it is the start offset returned by the aob scanner, instead of
+	// the position of the first BYTE of the pattern. 
 	void AOBBlock::createAOBPatternFromStringPattern(string pattern)
 	{
 		int index = 0;

@@ -119,6 +119,7 @@ namespace IGCS
 			disableInGameDofWhenCameraIsEnabled = false;
 			lkgViewDistance = 1.0f;
 			lkgViewCount = 45;
+			strcpy(screenshotDirectory, "C:\\");
 			
 			if (!persistedOnly)
 			{

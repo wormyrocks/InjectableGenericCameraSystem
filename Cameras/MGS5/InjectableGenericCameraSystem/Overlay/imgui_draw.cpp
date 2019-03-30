@@ -2319,7 +2319,7 @@ static unsigned char *stb__barrier, *stb__barrier2, *stb__barrier3, *stb__barrie
 static unsigned char *stb__dout;
 static void stb__match(unsigned char *data, unsigned int length)
 {
-    // INVERSE of memmove... write each byte before copying the next...
+    // INVERSE of memmove... write each BYTE before copying the next...
     IM_ASSERT (stb__dout + length <= stb__barrier);
     if (stb__dout + length > stb__barrier) { stb__dout += length; return; }
     if (data < stb__barrier4) { stb__dout = stb__barrier+1; return; }

@@ -279,6 +279,12 @@ Special thanks to:
 			ImGui::Combo("Weather type B", &currentSettings.weatherB, "Clear\0Cloudy\0Rain\0Sand storm\0Mist / Fog\0\0");
 			ImGui::SliderFloat("Weather blend factor (A blend with B)", &currentSettings.weatherIntensity, 0.0f, 1.0f, "%.3f");
 		}
+		if (ImGui::CollapsingHeader("Looking Glass options", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			settingsChanged |= ImGui::SliderFloat("LKG view distance", &currentSettings.lkgViewDistance, 0.0f, 100.0f, "%.3f");
+			settingsChanged |= ImGui::SliderInt("LKG view count", &currentSettings.lkgViewCount, 0, 60);
+			settingsChanged |= ImGui::InputText("Screenshot output directory", currentSettings.screenshotDirectory, 500);
+		}
 		ImGui::PopItemWidth();
 		if (settingsChanged)
 		{

@@ -47,8 +47,8 @@ PUBLIC todStructInterceptor
 ;---------------------------------------------------------------
 ; Externs which are used and set by the system. Read / write these
 ; values in asm to communicate with the system
-EXTERN g_cameraEnabled: byte
-EXTERN g_gamePaused: byte
+EXTERN g_cameraEnabled: BYTE
+EXTERN g_gamePaused: BYTE
 EXTERN g_cameraStructAddress: qword
 EXTERN g_cameraCutsceneStructAddress: qword
 EXTERN g_timestopStructAddress: qword
@@ -85,7 +85,7 @@ cameraStructInterceptor PROC
 ;
 ; We'll also block writes when the camera is enabled. 
 	mov [g_cameraStructAddress], rcx
-	cmp byte ptr [g_cameraEnabled], 1					; check if the user enabled the camera. If so, just skip the write statements, otherwise just execute the original code.
+	cmp BYTE ptr [g_cameraEnabled], 1					; check if the user enabled the camera. If so, just skip the write statements, otherwise just execute the original code.
 	jne originalCode									; our own camera is enabled, just skip the writes
 noWrites:
 	; we'll keep the reads, as it's not known if caller wants to do something with them...
@@ -117,7 +117,7 @@ cameraCutsceneStructInterceptor PROC
 ;
 ; We'll also block writes when the camera is enabled. 
 	mov [g_cameraCutsceneStructAddress], rax
-	cmp byte ptr [g_cameraEnabled], 1					; check if the user enabled the camera. If so, just skip the write statements, otherwise just execute the original code.
+	cmp BYTE ptr [g_cameraEnabled], 1					; check if the user enabled the camera. If so, just skip the write statements, otherwise just execute the original code.
 	jne originalCode									; our own camera is enabled, just skip the writes
 noWrites:
 	; we'll keep the reads, as it's not known if caller wants to do something with them...
@@ -142,9 +142,9 @@ cameraCutsceneWrite1Interceptor PROC
 ;14329D7DE - F3 0F10 05 5AA38DFF   - movss xmm0,[142B77B40]				<< CONTINUE HERE
 ;14329D7E6 - F3 0F58 40 3C         - addss xmm0,[rax+3C]
 ;14329D7EB - F3 0F11 40 3C         - movss [rax+3C],xmm0
-;14329D7F0 - 0FB6 05 29A38DFF      - movzx eax,byte ptr [142B77B20]
+;14329D7F0 - 0FB6 05 29A38DFF      - movzx eax,BYTE ptr [142B77B20]
 ;14329D7F7 - A8 01                 - test al,01 { 1 }
-	cmp byte ptr [g_cameraEnabled], 1					; check if the user enabled the camera. If so, just skip the write statements, otherwise just execute the original code.
+	cmp BYTE ptr [g_cameraEnabled], 1					; check if the user enabled the camera. If so, just skip the write statements, otherwise just execute the original code.
 	je exit
 originalCode:
 	movaps xmmword ptr [rax+00000120h],xmm0	
@@ -168,7 +168,7 @@ fovWriteInterceptor PROC
 ;mgsvtpp.exe+403C156 - A8 01                 - test al,01
 	mulss xmm1, dword ptr [rsi+000005B8h]
 	addss xmm1,xmm0
-	cmp byte ptr [g_cameraEnabled], 1					
+	cmp BYTE ptr [g_cameraEnabled], 1					
 	je exit
 originalCode:
 	movss dword ptr [rcx+0Ch],xmm1		
@@ -193,7 +193,7 @@ gamespeedWriteInterceptor PROC
 ;142EB385F - E8 0C55FAFF           - call 142E58D70
 	mov [g_gamespeedStructAddress], rdi
 	movss dword ptr [rdi+08h],xmm7
-	cmp byte ptr [g_gamePaused], 1
+	cmp BYTE ptr [g_gamePaused], 1
 	je exit
 originalCode:
 	movss dword ptr [rdi+0Ch],xmm6					; write gamespeed.
@@ -221,7 +221,7 @@ timestopReadInterceptor PROC
 ;1433BA30B - 48 B9 0180008000000080 - mov rcx,8000000080008001 { -2147450879 }
 ;1433BA315 - 48 0FA3 C1            - bt rcx,rax
 ;1433BA319 - 73 1C                 - jae 1433BA337
-;1433BA31B - 80 3D EEFB7EFF 00     - cmp byte ptr [142BA9F10],00 { [00000000] }
+;1433BA31B - 80 3D EEFB7EFF 00     - cmp BYTE ptr [142BA9F10],00 { [00000000] }
 ;1433BA322 - 75 13                 - jne 1433BA337
 ;1433BA324 - 48 8B 4F 40           - mov rcx,[rdi+40]
 ;1433BA328 - 8B 01                 - mov eax,[rcx]
@@ -253,7 +253,7 @@ dofStructInterceptor PROC
 ;1432A5F83 - 4C 8D 45 17           - lea r8,[rbp+17]
 	mov [g_dofStructAddress], rdi
 	movss xmm1, dword ptr [r14+38h]
-	cmp byte ptr [g_cameraEnabled], 1
+	cmp BYTE ptr [g_cameraEnabled], 1
 	je exit
 originalCode:
 	movss dword ptr [rdi+00000108h],xmm1
@@ -271,8 +271,8 @@ dofWriteInterceptor PROC
 ;1432A5FC0 - F3 0F11 8F 24010000   - movss [rdi+00000124],xmm1				<< Aperture write.	(0.5-32)
 ;1432A5FC8 - F3 41 0F10 46 50      - movss xmm0,[r14+50]					<< CONTINUE HERE
 ;1432A5FCE - F3 0F11 87 28010000   - movss [rdi+00000128],xmm0
-;1432A5FD6 - 41 80 BE E7000000 00  - cmp byte ptr [r14+000000E7],00 { 0 }
-	cmp byte ptr [g_cameraEnabled], 1
+;1432A5FD6 - 41 80 BE E7000000 00  - cmp BYTE ptr [r14+000000E7],00 { 0 }
+	cmp BYTE ptr [g_cameraEnabled], 1
 	jne originalCode
 noWrites:
 	movss xmm1,dword ptr [rbp+17h]

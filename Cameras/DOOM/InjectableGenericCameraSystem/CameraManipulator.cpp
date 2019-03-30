@@ -48,7 +48,7 @@ namespace IGCS::GameSpecific::CameraManipulator
 	static bool _timeHasBeenStopped = false;
 
 	// newValue: 1 == time should be frozen, 0 == normal gameplay
-	void setTimeStopValue(LPBYTE hostImageAddress, byte newValue)
+	void setTimeStopValue(LPBYTE hostImageAddress, BYTE newValue)
 	{
 		LPBYTE timestopAddress = hostImageAddress + TIMESTOP_IN_IMAGE_OFFSET;
 		*timestopAddress = newValue;

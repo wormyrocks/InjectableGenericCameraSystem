@@ -226,7 +226,6 @@ namespace IGCS
 		if (Input::isActionActivated(ActionType::LightfieldPhoto))
 		{
 			takeLightfieldPhoto();
-			_applyHammerPrevention = true;
 		}
 		else if (Input::isActionActivated(ActionType::LightfieldLeft,true))
 		{

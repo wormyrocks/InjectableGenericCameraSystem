@@ -64,6 +64,9 @@
     <ClInclude Include="Input.h">
       <Filter>Input</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Misc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="InterceptorHelper.cpp">
@@ -110,5 +113,11 @@
     <MASM Include="Interceptor.asm">
       <Filter>Game Specific</Filter>
     </MASM>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\dependencies\stb.vcxproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="DOOMCameraTools.rc" />
   </ItemGroup>
 </Project>

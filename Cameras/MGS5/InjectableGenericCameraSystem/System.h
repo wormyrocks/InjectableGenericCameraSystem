@@ -53,8 +53,18 @@ namespace IGCS
 		void handleMouseCameraMovement(float multiplier);
 		void handleGamePadMovement(float multiplierBase);
 		void freezeGame();
+		void freezeGame(bool freeze);
 		void waitForCameraStructAddresses();
 
+		void startCapture(int numViews);
+		void moveLightfield(int direction, bool end);
+		void moveLightfield(int direction, bool end, bool log);
+		void takeLightfieldPhoto();
+		int framesToGrab = 0;
+		bool gameFrozen = false;
+		bool _isLightfieldCapturing = false;
+		bool _lightfieldHookInited = false;
+		int _screenshot_ts[4] = {};
 		Camera _camera;
 		LPBYTE _hostImageAddress;
 		DWORD _hostImageSize;

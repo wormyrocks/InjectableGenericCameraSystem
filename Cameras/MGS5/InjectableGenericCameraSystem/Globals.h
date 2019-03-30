@@ -32,8 +32,8 @@
 #include "Defaults.h"
 #include "CDataFile.h"
 
-extern "C" byte g_cameraEnabled;
-extern "C" byte g_gamePaused;
+extern "C" BYTE g_cameraEnabled;
+extern "C" BYTE g_gamePaused;
 
 namespace IGCS
 {
@@ -59,6 +59,10 @@ namespace IGCS
 		float weatherIntensity;			// 0-1
 		int todHour;					// 0-23
 		int todMinute;					// 0-59
+
+		float lkgViewDistance;
+		int lkgViewCount;
+		char screenshotDirectory[500];
 
 		float clampFloat(float value, float min, float default)
 		{
@@ -88,6 +92,11 @@ namespace IGCS
 			rotationSpeed = clampFloat(iniFile.GetFloat("rotationSpeed", "CameraSettings"), 0.0f, DEFAULT_ROTATION_SPEED);
 			fovChangeSpeed = clampFloat(iniFile.GetFloat("fovChangeSpeed", "CameraSettings"), 0.0f, DEFAULT_FOV_SPEED);
 			cameraControlDevice = clampInt(iniFile.GetInt("cameraControlDevice", "CameraSettings"), 0, DEVICE_ID_ALL, DEVICE_ID_ALL);
+			lkgViewDistance = clampFloat(iniFile.GetFloat("lkgViewDistance", "CameraSettings"), 0.0f, 100.0f);
+			lkgViewCount = clampInt(iniFile.GetInt("lkgViewCount", "CameraSettings"), 0, 60, 45);
+			std::string sds = iniFile.GetValue("screenshotDirectory", "CameraSettings");
+			std::copy(sds.begin(), sds.end(), screenshotDirectory);
+			screenshotDirectory[sds.size()] = '\0';
 		}
 
 		void saveToFile()
@@ -102,6 +111,10 @@ namespace IGCS
 			iniFile.SetFloat("rotationSpeed", rotationSpeed, "", "CameraSettings");
 			iniFile.SetFloat("fovChangeSpeed", fovChangeSpeed, "", "CameraSettings");
 			iniFile.SetInt("cameraControlDevice", cameraControlDevice, "", "CameraSettings");
+			iniFile.SetFloat("lkgViewDistance", lkgViewDistance, "", "CameraSettings");
+			iniFile.SetInt("lkgViewCount", lkgViewCount, "", "CameraSettings");
+			iniFile.SetValue("screenshotDirectory", screenshotDirectory, "", "CameraSettings");
+
 			iniFile.SetFileName(IGCS_SETTINGS_INI_FILENAME);
 			iniFile.Save();
 		}
@@ -118,6 +131,9 @@ namespace IGCS
 			fovChangeSpeed = DEFAULT_FOV_SPEED;
 			cameraControlDevice = DEVICE_ID_ALL;
 			allowCameraMovementWhenMenuIsUp = false;
+			lkgViewDistance = 1.0f;
+			lkgViewCount = 45;
+			strcpy(screenshotDirectory, "C:\\");
 			if (!persistedOnly)
 			{
 				dofDistance = 1.0f;
