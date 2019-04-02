@@ -83,7 +83,31 @@ namespace IGCS
 	// updates the data and camera for a frame 
 	void System::updateFrame()
 	{
-		handleUserInput();
+		if (!_isLightfieldCapturing) handleUserInput();
+		else {
+			_camera.resetMovement();
+			if (framesToGrab == 0) { // all framebuffers grabbed
+				_isLightfieldCapturing = false;
+				moveLightfield(-1, true, false);
+				OverlayControl::addNotification("Lightfield photo end. Saving files...");
+			}
+			else {
+				// synchronize camera position with lightfield capture
+				char buf[100];
+				sprintf(buf, "[main] main: %d hook: %d", framesToGrab, DX11Hooker::framesRemaining());
+				OverlayControl::addNotification(buf);
+				if (!_lightfieldHookInited) {
+					OverlayControl::addNotification("Lightfield photo begin.");
+					startCapture(framesToGrab);
+					_lightfieldHookInited = true;
+				}
+				else if (DX11Hooker::framesRemaining() == framesToGrab) {
+					--framesToGrab;
+					moveLightfield(1, false, false);
+					DX11Hooker::syncFramesToGrab(framesToGrab);
+				}
+			}
+		}
 		writeNewCameraValuesToCameraStructs();
 	}
 	
@@ -184,29 +208,6 @@ namespace IGCS
 
 		_camera.resetMovement();
 
-		if (_isLightfieldCapturing)
-		{
-			if (framesToGrab == 0) {
-				_isLightfieldCapturing = false;
-				moveLightfield(-1, true, false);
-				OverlayConsole::instance().logLine("Lightfield photo end.");
-				//InterceptorHelper::toggleHudRenderState(_aobBlocks, _hudToggled);
-			}
-			else {
-				// synchronize camera position with lightfield capture
-				if (!_lightfieldHookInited) {
-					OverlayConsole::instance().logLine("Lightfield photo begin.");
-					startCapture(framesToGrab);
-					_lightfieldHookInited = true;
-				}
-				else if (framesToGrab >= DX11Hooker::framesRemaining()) {
-					--framesToGrab;
-					moveLightfield(1, false, false);
-					return;
-				}
-				DX11Hooker::syncFramesToGrab(framesToGrab);
-			}
-		}
 
 		Settings& settings = Globals::instance().settings();
 		float multiplier = altPressed ? settings.fastMovementMultiplier : rcontrolPressed ? settings.slowMovementMultiplier : 1.0f;
@@ -215,7 +216,6 @@ namespace IGCS
 			toggleCameraMovementLockState(!_cameraMovementLocked);
 			Sleep(350);				// wait for 350ms to avoid fast keyboard hammering
 		}
-
 		if (Input::keyDown(IGCS_KEY_LIGHTFIELD_PHOTO))
 		{
 			takeLightfieldPhoto();
@@ -437,23 +437,24 @@ namespace IGCS
 		else
 			return 0;
 	}
-	void System::takeLightfieldPhoto()
+	bool System::takeLightfieldPhoto()
 	{
 		if (!direxists(Globals::instance().settings().screenshotDirectory))
 		{
-			OverlayConsole::instance().logError("Screenshot target directory does not exist!");
-			return;
+			OverlayControl::addNotification("Screenshot target directory does not exist!");
+			Sleep(200);
+			return false;
 		}
 		if (_isLightfieldCapturing || !DX11Hooker::isDoneSavingImages()) {
-			OverlayConsole::instance().logError("Previous capture not complete!");
-			return;
+			OverlayControl::addNotification("Previous capture not complete!");
+			Sleep(200);
+			return false;
 		}
-		//InterceptorHelper::toggleHudRenderState(_aobBlocks, true);
-		//CameraManipulator::setTimeStopValue(true);
-		moveLightfield(-1, true, false);
 		_lightfieldHookInited = false;
+		moveLightfield(-1, true, false);
 		framesToGrab = Globals::instance().settings().lkgViewCount;
 		_isLightfieldCapturing = true;
+		return true;
 	}
 	void System::startCapture(int numViews = 1)
 	{
@@ -484,22 +485,20 @@ namespace IGCS
 	}
 	void System::moveLightfield(int direction, bool end, bool log)
 	{
-		OverlayControl::addNotification("moveLightfield called");
-		log = !log;
+		float dist = direction * (Globals::instance().settings().lkgViewDistance);
 		if (end) {
 			if (log) {
 				//OverlayConsole::instance().logLine((direction > 0) ? "Move to end." : "Move to start.");
 				OverlayControl::addNotification((direction > 0) ? "Move to end." : "Move to start.");
 			}
-			float dist = direction * 0.5f*(Globals::instance().settings().lkgViewDistance)*(Globals::instance().settings().lkgViewCount);
-			_camera.moveRight(dist);
+			dist *= 0.5f*(Globals::instance().settings().lkgViewCount);
+			_camera.moveRight(dist / Globals::instance().settings().movementSpeed); // scale to be independent of camera movement speed
 			return;
 		}
 		if (log) {
 			//OverlayConsole::instance().logLine((direction > 0) ? "Move to next." : "Move to previous.");
 			OverlayControl::addNotification((direction > 0) ? "Move to next." : "Move to previous.");
 		}
-		float dist = direction * (Globals::instance().settings().lkgViewDistance);
-		_camera.moveRight(dist);
+		_camera.moveRight(dist / Globals::instance().settings().movementSpeed); // scale to be independent of camera movement speed
 	}
 }

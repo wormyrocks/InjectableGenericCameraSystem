@@ -108,7 +108,9 @@ namespace IGCS::DX11Hooker
 				}
 				if (framesToGrab > 0)
 				{
-					OverlayConsole::instance().logDebug("hook frames remaining: %d, sync: %d", framesToGrab, framesToGrabSync);
+					/*char buf[100];
+					sprintf(buf, "[hook] main: %d hook: %d", framesToGrabSync, framesToGrab);
+					OverlayControl::addNotification(buf);*/
 					if (framesToGrab >= framesToGrabSync) {
 						fb_array.push_back(capture_frame(pSwapChain));
 						--framesToGrab;
@@ -121,6 +123,7 @@ namespace IGCS::DX11Hooker
 				// render our own stuff
 				_context->OMSetRenderTargets(1, &_mainRenderTargetView, NULL);
 				OverlayControl::renderOverlay();
+				
 				Input::resetKeyStates();
 				Input::resetMouseState();
 			}
@@ -132,7 +135,6 @@ namespace IGCS::DX11Hooker
 	}
 	void syncFramesToGrab(int ftgs)
 	{
-
 		framesToGrabSync = ftgs;
 	}
 	void initializeHook()
@@ -299,7 +301,9 @@ namespace IGCS::DX11Hooker
 		}
 		fb_array.clear();
 		_isDoneSavingImages = true;
-		OverlayConsole::instance().logLine("All files saved out to %s", _filename);
+		char buf[500];
+		sprintf(buf, "All files saved out to %s", _filename);
+		OverlayControl::addNotification(buf);
 		return;
 	}
 
@@ -308,7 +312,7 @@ namespace IGCS::DX11Hooker
 		char filename[500];
 		sprintf(filename, "%s\\%d.jpg", dirname, framenum);
 		bool _screenshot_save_success = false; // Default to a save failure unless it is reported to succeed below
-		_screenshot_save_success = stbi_write_jpg(filename, _width, _height, 4, data.data(), 70) != 0;
+		_screenshot_save_success = stbi_write_jpg(filename, _width, _height, 4, data.data(), 80) != 0;
 		if (!_screenshot_save_success)
 		{
 			OverlayConsole::instance().logDebug("Failed to write screenshot of dimensions %dx%d to... %s", _width, _height, filename);

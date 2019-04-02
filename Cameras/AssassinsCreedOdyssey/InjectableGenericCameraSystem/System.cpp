@@ -83,7 +83,32 @@ namespace IGCS
 	// updates the data and camera for a frame 
 	void System::updateFrame()
 	{
-		handleUserInput();
+		if (!_isLightfieldCapturing) handleUserInput();
+		else {
+			_camera.resetMovement();
+			if (framesToGrab == 0) { // all framebuffers grabbed
+				_isLightfieldCapturing = false;
+				moveLightfield(-1, true, false);
+				OverlayControl::addNotification("Lightfield photo end. Saving files...");
+				CameraManipulator::setTimeStopValue(_timeStopped);
+				InterceptorHelper::toggleHudRenderState(_aobBlocks, _hudToggled);
+			}
+			else {
+				// synchronize camera position with lightfield capture
+				/*char buf[100];
+				sprintf(buf, "[main] main: %d hook: %d", framesToGrab, DX11Hooker::framesRemaining());
+				OverlayControl::addNotification(buf);*/
+				if (!_lightfieldHookInited) {
+					OverlayControl::addNotification("Lightfield photo begin.");
+					startCapture(framesToGrab);
+					_lightfieldHookInited = true;
+				} else if (DX11Hooker::framesRemaining() == framesToGrab) {
+					--framesToGrab;
+					moveLightfield(1, false, false);
+					DX11Hooker::syncFramesToGrab(framesToGrab);
+				}
+			}
+		}
 		writeNewCameraValuesToCameraStructs();
 	}
 	
@@ -117,10 +142,6 @@ namespace IGCS
 			// sleep main thread for 200ms so key repeat delay is simulated. 
 			Sleep(200);
 		}
-		if (Input::isActionActivated(ActionType::SingleScreenshot)) {
-			singleScreenshot();
-			_applyHammerPrevention = true;
-		}
 		if (Input::isActionActivated(ActionType::ToggleOverlay))
 		{
 			OverlayControl::toggleOverlay();
@@ -136,6 +157,7 @@ namespace IGCS
 			// stop here, so keys used in the camera system won't affect anything of the camera
 			return;
 		}
+
 		if (Input::isActionActivated(ActionType::CameraEnable))
 		{
 			if (g_cameraEnabled)
@@ -190,28 +212,9 @@ namespace IGCS
 			_applyHammerPrevention = true;
 		}
 		_camera.resetMovement();
-		if (_isLightfieldCapturing)
+		if (Input::isActionActivated(ActionType::LightfieldPhoto))
 		{
-			if (framesToGrab == 0) {
-				_isLightfieldCapturing = false;
-				moveLightfield(-1, true, false);
-				OverlayConsole::instance().logLine("Lightfield photo end.");
-				CameraManipulator::setTimeStopValue(_timeStopped);
-				InterceptorHelper::toggleHudRenderState(_aobBlocks, _hudToggled);
-			}
-			else {
-				// synchronize camera position with lightfield capture
-				if (!_lightfieldHookInited) {
-					OverlayConsole::instance().logLine("Lightfield photo begin.");
-					startCapture(framesToGrab);
-					_lightfieldHookInited = true;
-				} else if (framesToGrab >= DX11Hooker::framesRemaining()) {
-					--framesToGrab;
-					moveLightfield(1, false, false);
-					return;
-				}
-				DX11Hooker::syncFramesToGrab(framesToGrab);
-			}
+			if (takeLightfieldPhoto()) return;
 		}
 		Settings& settings = Globals::instance().settings();
 		if (Input::isActionActivated(ActionType::CameraLock))
@@ -223,11 +226,7 @@ namespace IGCS
 		bool altPressed = Utils::altPressed();
 		bool rcontrolPressed = Utils::keyDown(VK_RCONTROL);
 
-		if (Input::isActionActivated(ActionType::LightfieldPhoto))
-		{
-			takeLightfieldPhoto();
-		}
-		else if (Input::isActionActivated(ActionType::LightfieldLeft,true))
+		if (Input::isActionActivated(ActionType::LightfieldLeft,true))
 		{
 			moveLightfield(-1, altPressed);
 			_applyHammerPrevention = true;
@@ -452,12 +451,6 @@ namespace IGCS
 		_hudToggled = !_hudToggled;
 		InterceptorHelper::toggleHudRenderState(_aobBlocks, _hudToggled);
 	}
-	void System::singleScreenshot()
-	{
-		if (!DX11Hooker::isDoneSavingImages()) return;
-		if (_isLightfieldCapturing) return;
-		startCapture(1);
-	}
 	int direxists(const char* path) {
 		struct stat info;
 		if (stat(path, &info) != 0)
@@ -467,23 +460,26 @@ namespace IGCS
 		else
 			return 0;
 	}
-	void System::takeLightfieldPhoto()
+	bool System::takeLightfieldPhoto()
 	{
 		if (!direxists(Globals::instance().settings().screenshotDirectory))
 		{
 			OverlayConsole::instance().logError("Screenshot target directory does not exist!");
-			return;
+			_applyHammerPrevention = true;			
+			return false;
 		}
 		if (_isLightfieldCapturing || !DX11Hooker::isDoneSavingImages()) {
-			OverlayConsole::instance().logError("Previous capture not complete!");
-			return;
+			OverlayControl::addNotification("Please wait until files from the previous capture are written to disk.");
+			_applyHammerPrevention = true;
+			return false;
 		}
+		_lightfieldHookInited = false;
+		moveLightfield(-1, true, false);
 		InterceptorHelper::toggleHudRenderState(_aobBlocks, true);
 		CameraManipulator::setTimeStopValue(true);
-		moveLightfield(-1, true, false);
-		_lightfieldHookInited = false;
 		framesToGrab = Globals::instance().settings().lkgViewCount;
 		_isLightfieldCapturing = true;
+		return true;
 	}
 	void System::startCapture(int numViews = 1)
 	{
@@ -514,22 +510,20 @@ namespace IGCS
 	}
 	void System::moveLightfield(int direction, bool end, bool log)
 	{
-		OverlayControl::addNotification("moveLightfield called");
-		log = !log;
+		float dist = direction * (Globals::instance().settings().lkgViewDistance);
 		if (end) {
 			if (log) {
 				//OverlayConsole::instance().logLine((direction > 0) ? "Move to end." : "Move to start.");
 				OverlayControl::addNotification((direction > 0) ? "Move to end." : "Move to start.");
 			}
-			float dist = direction * 0.5f*(Globals::instance().settings().lkgViewDistance)*(Globals::instance().settings().lkgViewCount);
-			_camera.moveRight(dist);
+			dist *= 0.5f*(Globals::instance().settings().lkgViewCount);
+			_camera.moveRight(dist / Globals::instance().settings().movementSpeed); // scale to be independent of camera movement speed
 			return;
 		}
 		if (log) {
 			//OverlayConsole::instance().logLine((direction > 0) ? "Move to next." : "Move to previous.");
 			OverlayControl::addNotification((direction > 0) ? "Move to next." : "Move to previous.");
 		}
-		float dist = direction * (Globals::instance().settings().lkgViewDistance);
-		_camera.moveRight(dist);
+		_camera.moveRight(dist / Globals::instance().settings().movementSpeed); // scale to be independent of camera movement speed
 	}
 }

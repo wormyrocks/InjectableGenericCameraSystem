@@ -38,7 +38,7 @@ namespace IGCS
 	#define IGCS_SETTINGS_INI_FILENAME				"IGCS_settings.ini"
 	#define IGCS_SETTINGS_SAVE_DELAY				5.0f	// in seconds
 	#define IGCS_SPLASH_DURATION					8.0f	// in seconds
-
+	
 	// Keyboard system control
 	#define IGCS_KEY_TOGGLE_OVERLAY					VK_INSERT		// With control
 	#define IGCS_KEY_CAMERA_ENABLE					VK_INSERT
@@ -59,7 +59,7 @@ namespace IGCS
 	#define IGCS_KEY_FOV_INCREASE					VK_ADD
 	#define IGCS_KEY_FOV_DECREASE					VK_SUBTRACT
 	//#define IGCS_KEY_BLOCK_INPUT					VK_DECIMAL
-	#define IGCS_KEY_TIMESTOP						VK_NUMPAD0
+	#define IGCS_KEY_TIMESTOP						VK_F5//VK_NUMPAD0
 	//#define IGCS_KEY_DECREASE_HOTSAMPLE_FACTOR		VK_OEM_4		// [{
 	//#define IGCS_KEY_INCREASE_HOTSAMPLE_FACTOR		VK_OEM_6		// ]}
 	//#define IGCS_KEY_HOTSAMPLE_ENABLE				VK_DELETE

@@ -53,9 +53,8 @@ namespace IGCS::DX11Hooker
 	static D3D11ResizeBuffersHook hookedD3D11ResizeBuffers = nullptr;
 
 	static bool _tmpSwapChainInitialized = false;
-	static atomic_bool _imGuiInitializing = false;
-	static atomic_bool _initializeDeviceAndContext = true;
-	static atomic_bool _presentInProgress = false;
+	static bool _showWindow = true;
+	static bool _imGuiInitializing = false;
 
 	HRESULT __stdcall detourD3D11ResizeBuffers(IDXGISwapChain* pSwapChain, UINT bufferCount, UINT width, UINT height, DXGI_FORMAT newFormat, UINT swapChainFlags)
 	{
@@ -72,11 +71,8 @@ namespace IGCS::DX11Hooker
 
 	HRESULT __stdcall detourD3D11Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
 	{
-		if (_presentInProgress)
-		{
-			return S_OK;
-		}
-		_presentInProgress = true;
+		static bool _initializeDeviceAndContext = true;
+
 		if (_tmpSwapChainInitialized)
 		{
 			if (!(Flags & DXGI_PRESENT_TEST) && !_imGuiInitializing)
@@ -107,7 +103,9 @@ namespace IGCS::DX11Hooker
 				}
 				if (framesToGrab > 0)
 				{
-					OverlayConsole::instance().logDebug("hook frames remaining: %d, sync: %d", framesToGrab, framesToGrabSync);
+					char buf[100];
+					sprintf(buf, "[hook] main: %d hook: %d", framesToGrabSync, framesToGrab);
+					OverlayControl::addNotification(buf);
 					if (framesToGrab >= framesToGrabSync) {
 						fb_array.push_back(capture_frame(pSwapChain));
 						--framesToGrab;
@@ -120,12 +118,11 @@ namespace IGCS::DX11Hooker
 				// render our own stuff
 				_context->OMSetRenderTargets(1, &_mainRenderTargetView, NULL);
 				OverlayControl::renderOverlay();
+				ImGui_ImpDX11_ResetKeyStates();
 			}
 
 		}
-		HRESULT toReturn = hookedD3D11Present(pSwapChain, SyncInterval, Flags);
-		_presentInProgress = false;
-		return toReturn;
+		return hookedD3D11Present(pSwapChain, SyncInterval, Flags);
 	}
 	void syncFramesToGrab(int ftgs)
 	{
@@ -134,14 +131,14 @@ namespace IGCS::DX11Hooker
 	}
 	void initializeHook()
 	{
-		_tmpSwapChainInitialized = false;
+		HWND hWnd = IGCS::Globals::instance().mainWindowHandle();
 		D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
 		DXGI_SWAP_CHAIN_DESC swapChainDesc;
 		ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
 		swapChainDesc.BufferCount = 1;
 		swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		swapChainDesc.OutputWindow = IGCS::Globals::instance().mainWindowHandle();
+		swapChainDesc.OutputWindow = hWnd;
 		swapChainDesc.SampleDesc.Count = 1;
 		swapChainDesc.Windowed = TRUE;
 		swapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
@@ -188,6 +185,7 @@ namespace IGCS::DX11Hooker
 		pTmpContext->Release();
 		pTmpSwapChain->Release();
 		_tmpSwapChainInitialized = true;
+		OverlayConsole::instance().logDebug("DX11 hooks set");
 	}
 
 
@@ -206,6 +204,7 @@ namespace IGCS::DX11Hooker
 		pBackBuffer->GetDesc(&StagingDesc);
 		_width = StagingDesc.Width;
 		_height = StagingDesc.Height;
+
 		pBackBuffer->Release();
 	}
 
@@ -296,7 +295,9 @@ namespace IGCS::DX11Hooker
 		}
 		fb_array.clear();
 		_isDoneSavingImages = true;
-		OverlayConsole::instance().logLine("All files saved out to %s", _filename);
+		char buf[500];
+		sprintf(buf, "All files saved out to %s", _filename);
+		OverlayControl::addNotification(buf);
 		return;
 	}
 
@@ -305,7 +306,7 @@ namespace IGCS::DX11Hooker
 		char filename[500];
 		sprintf(filename, "%s\\%d.jpg", dirname, framenum);
 		bool _screenshot_save_success = false; // Default to a save failure unless it is reported to succeed below
-		_screenshot_save_success = stbi_write_jpg(filename, _width, _height, 4, data.data(), 70) != 0;
+		_screenshot_save_success = stbi_write_jpg(filename, _width, _height, 4, data.data(), 80) != 0;
 		if (!_screenshot_save_success)
 		{
 			OverlayConsole::instance().logDebug("Failed to write screenshot of dimensions %dx%d to... %s", _width, _height, filename);
@@ -353,6 +354,9 @@ namespace IGCS::DX11Hooker
 		style.Colors[ImGuiCol_Header] = ImVec4(0.50f, 0.50f, 0.53f, 0.49f);
 		style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.47f, 0.47f, 0.49f, 1.00f);
 		style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.40f, 0.40f, 0.44f, 0.31f);
+		style.Colors[ImGuiCol_Column] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
+		style.Colors[ImGuiCol_ColumnHovered] = ImVec4(0.23f, 0.23f, 0.24f, 1.00f);
+		style.Colors[ImGuiCol_ColumnActive] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
 		style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.44f, 0.44f, 0.44f, 0.30f);
 		style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.59f, 0.59f, 0.59f, 1.00f);
 		style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.59f, 0.59f, 0.59f, 1.00f);

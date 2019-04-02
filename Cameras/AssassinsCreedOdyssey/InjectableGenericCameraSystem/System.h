@@ -56,8 +56,7 @@ namespace IGCS
 		void toggleInputBlockState(bool newValue);
 		void toggleTimestopState();
 		void toggleHudRenderState();
-		void takeLightfieldPhoto();
-		void singleScreenshot();
+		bool takeLightfieldPhoto();
 		void startCapture(int numViews);
 		void moveLightfield(int direction, bool end);
 		void moveLightfield(int direction, bool end, bool log);

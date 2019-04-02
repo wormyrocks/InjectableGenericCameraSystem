@@ -59,7 +59,7 @@ namespace IGCS
 		void startCapture(int numViews);
 		void moveLightfield(int direction, bool end);
 		void moveLightfield(int direction, bool end, bool log);
-		void takeLightfieldPhoto();
+		bool takeLightfieldPhoto();
 		int framesToGrab = 0;
 		bool gameFrozen = false;
 		bool _isLightfieldCapturing = false;
